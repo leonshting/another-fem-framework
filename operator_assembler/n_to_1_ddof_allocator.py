@@ -2,9 +2,7 @@ from itertools import chain
 from typing import Dict, List
 
 from grid.cell import Cell2D
-from grid.allocator_interface import InterfaceDofAllocator2D
 from operator_assembler.base_ddof_allocator import BaseAllocator2D
-from operator_assembler.fe_cell import FiniteElement2D
 from common.custom_types_for_typechecking import *
 
 
@@ -18,7 +16,6 @@ class Nto1Allocator2D(BaseAllocator2D):
                 adj_edge_cells = self.grid_interface.query_adj_cells_by_edge(cell, edge, num_layer=num_layer)
                 self._connect_egdes(host_edge=edge, peer=adj_edge_cells, host_cell=cell)
             self._allocate_interior_ddofs(host_cell=cell)
-        print(self._vertex_ddof_index)
 
     @staticmethod
     def _get_stitching_mode(host_edge: edge_2D_type, peer_edges: Dict[Tuple, Cell2D], host_props, peer_props):

@@ -1,3 +1,4 @@
+from operator import itemgetter
 from typing import Dict
 
 from common.custom_types_for_typechecking import *
@@ -34,7 +35,7 @@ class BaseAllocator2D:
 
         to_insert = host_cell_fe.get_interior_ddof_index()
         self._interior_ddof_index[host_cell.ll_vertex] = \
-            [(num + self._ddof_cnt, i) for num, i in enumerate(to_insert)]
+            [(i, num + self._ddof_cnt) for num, i in enumerate(to_insert)]
         self._ddof_cnt += len(to_insert)
 
     def _allocate_local_ddofs_edge(self, edge: edge_2D_type, cell: Cell2D, cell_fe: FiniteElement2D):
@@ -57,10 +58,20 @@ class BaseAllocator2D:
         return [vertex_ddofs[0]] + edge_ddofs + [vertex_ddofs[1]]
 
     def get_ddof_edge(self, cell: Cell2D, edge: edge_2D_type):
-        return self._edge_ddof_index.get((cell.ll_vertex,edge))
+        return self._edge_ddof_index.get((cell.ll_vertex, edge))
 
     def get_ddof_vertex(self, cell: Cell2D, vertex: vertex_2D_type):
         return self._vertex_ddof_index.get((cell.ll_vertex, vertex))
 
     def get_ddof_int(self, cell: Cell2D):
-        return self._interior_ddof_index.get((cell.ll_vertex))
+        return self._interior_ddof_index.get(cell.ll_vertex)
+
+    def get_weakly_connected_edges(self, cell: Cell2D):
+        ret_list = []
+        for edge in cell.iterate_edges():
+            for k, v in self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items():
+                ret_list.append([edge, k[1], [i[1] for i in sorted(v, key=itemgetter(0))]])
+        return ret_list
+
+    def get_cell_props(self, cell):
+        return self.grid_interface.get_cell_props(cell)

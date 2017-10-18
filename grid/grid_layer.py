@@ -31,6 +31,9 @@ class GridLayer():
         index = {v: num for num,v in enumerate(self.vertices)}
         return len(index), index
 
+    def get_num_of_cells(self):
+        return len(self.vertices)
+
 
 class GridLayer2D(GridLayer):
 
@@ -82,4 +85,3 @@ class GridLayer2D(GridLayer):
                 yield index, Cell2D(size=self.cell_size, ll_vertex=vertex)
             else:
                 yield Cell2D(size=self.cell_size, ll_vertex=vertex)
-
