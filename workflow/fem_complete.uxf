@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="14.2">
+  <zoom_level>8</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>520</x>
+      <y>24</y>
+      <w>288</w>
+      <h>184</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Domain&gt;&gt;
+DomainClass
+stores the state of the domain
+--
+-domain_size: ((x_0, x_1), (y_0, y_1))
+-index: ndarray with rock types
+-stiffness: {k from index: (stiffness, val_type)}
+--
+/-Domain(domain_size, index, stiffness=None)/
+/-map_index_to_domain(index): domain_point/
+/-map_domain_to_index(domain_point): index/
+--
+Responsibilities
+-map real coordinates to integer indices
+-delete index after it is passed to Domain2Grid, 
+     since it consumes a lot</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>168</x>
+      <y>184</y>
+      <w>320</w>
+      <h>224</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Domain2Grid&gt;&gt;
+Domain2GridClass
+converts dense array of indices to
+hierarchical layerwise represenation
+--
+-index: ndarray
+-hierarchical_dense: list(ndarray, ndarray, ...)
+-hierarchical_sparse: list({}, {}, {}, ...)
+-path_to_sparse: string
+--
+/-Domain2Grid(index)/
+/-to_sparse_representation(save_dense=True)/
+/-to_dense_representation()/
+--
+Responsibilities
+-construct sparse and dense representation
+-save and delete dense representation after constructions
+-coarse not only with 2:1 correspondence
+-stores and passes path to dense</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>128</x>
+      <y>80</y>
+      <w>408</w>
+      <h>184</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>50.0;210.0;10.0;210.0;10.0;10.0;490.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>552</x>
+      <y>400</y>
+      <w>312</w>
+      <h>208</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;CoarseGrid&gt;&gt;
+CoarseGridClass
+stores sparse state and further coarse-refine 
+--
+-hierarchical_sparse: list({},{},{}, ...)
+-hierarchical_dense: list(ndarray, ndarray, ndarray, ...)
+-path_to_dense: string
+--
+/-Grid(sparse_representation, path_to_dense)/
+/-iterate_cells(order='big2small')/
+/-index2num()/
+/-num2index()/
+--
+Responsibilities
+-store sparse representation
+-iterate over cells
+-stores dense representation if only there is enough memory
+-global numbering of cells and vertices
+-somehow yield neighbors</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>480</x>
+      <y>280</y>
+      <w>88</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>90.0;250.0;20.0;250.0;20.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>480</x>
+      <y>272</y>
+      <w>88</w>
+      <h>200</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>90.0;230.0;30.0;230.0;30.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLInterface</id>
+    <coordinates>
+      <x>664</x>
+      <y>240</y>
+      <w>80</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>GridInterface
+--
+get_neighbors
+get_cell_info</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>
