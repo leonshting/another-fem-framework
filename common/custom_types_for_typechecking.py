@@ -11,8 +11,8 @@ edge_2D_type = Tuple[vertex_2D_type, vertex_2D_type]
 edge_3D_type = Tuple[vertex_3D_type, vertex_3D_type]
 edge_nD_type = TypeVar('edge_nd', edge_2D_type, edge_3D_type)
 
-size_2D_type = Tuple[vertex_2D_type, vertex_2D_type]
-size_3D_type = Tuple[vertex_3D_type, vertex_3D_type]
+size_2D_type = vertex_2D_type
+size_3D_type = vertex_3D_type
 size_nD_type = TypeVar('size_nd', size_2D_type, size_3D_type)
 
 domain_vertex_2D_type = Tuple[numeric_type, numeric_type]
@@ -23,7 +23,7 @@ domain_edge_2D_type = Tuple[domain_vertex_2D_type, domain_vertex_2D_type]
 domain_edge_3D_type = Tuple[domain_vertex_3D_type, domain_vertex_3D_type]
 domain_edge_nD_type = TypeVar('domain_edge_nd', domain_edge_2D_type, domain_edge_3D_type)
 
-domain_size_2D_type = Tuple[domain_vertex_2D_type, domain_vertex_2D_type]
-domain_size_3D_type = Tuple[domain_vertex_3D_type, domain_vertex_3D_type]
+domain_size_2D_type = domain_vertex_2D_type
+domain_size_3D_type = domain_vertex_3D_type
 domain_size_nD_type = TypeVar('domain_size_nd', domain_size_2D_type, domain_size_3D_type)
 

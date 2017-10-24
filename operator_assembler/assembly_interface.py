@@ -45,3 +45,6 @@ class AssemblyInterface2D:
                        'cell_props': self.allocator.get_cell_props(cell)}
             else:
                 yield {'ddofs': ret_ddofs, 'wconn': self.allocator.get_weakly_connected_edges(cell)}
+
+    def get_ddof_count(self):
+        return self.allocator.ddof_cnt

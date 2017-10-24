@@ -3,6 +3,7 @@ from functools import reduce
 
 import numpy as np
 
+
 from common.helpers import is_pow2
 from grid.grid_layer import GridLayer2D, GridLayer
 
@@ -57,3 +58,19 @@ class GridManager:
                                                    index=list(layer_rock.values()),
                                                    div_index=div_index))
         return self
+
+    def draw_grid(self):
+        if len(self.grid_layers):
+            lines = []
+            from matplotlib import pyplot as plt
+            from matplotlib.collections import LineCollection
+            for layer in self.grid_layers:
+                for cell in layer.iterate_cells():
+                    for edge in cell.iterate_edges():
+                        lines.append(edge)
+            fig, ax = plt.subplots(figsize=(15,15))
+            lines = LineCollection(lines)
+            ax.add_collection(lines)
+
+            ax.autoscale()
+            plt.show()

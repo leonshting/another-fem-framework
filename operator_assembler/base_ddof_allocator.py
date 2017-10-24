@@ -75,3 +75,7 @@ class BaseAllocator2D:
 
     def get_cell_props(self, cell):
         return self.grid_interface.get_cell_props(cell)
+
+    @property
+    def ddof_cnt(self):
+        return self._ddof_cnt
