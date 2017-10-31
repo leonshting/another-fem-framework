@@ -102,10 +102,8 @@ class StrictSolve(VerbosePrinter):
         free_symbols = self.I_lr.free_symbols
         return M_NS.shape[1] != 0, free_symbols
 
-
-
-    def get_max_pow(self, risky=False):
-        return (self.total_points[0] * self.total_points[1]) // (sum(self.total_points)) + int(risky)
+    def get_max_pow(self, risky=False, unrisky=False):
+        return (self.total_points[0] * self.total_points[1]) // (sum(self.total_points)) + int(risky) - int(unrisky)
 
     def get_set_max_pow(self):
         return self._max_power
