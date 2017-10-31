@@ -69,9 +69,21 @@ class BaseAllocator2D:
     def get_weakly_connected_edges(self, cell: Cell2D):
         ret_list = []
         for edge in cell.iterate_edges():
-            for k, v in self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items():
-                ret_list.append([edge, k[1], [i[1] for i in sorted(v, key=itemgetter(0))]])
+            for (k_edge, v_edge), (k_props, v_props) in \
+                zip(self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items(),
+                    self._weak_edge_connections_props.get((cell.ll_vertex, edge), {}).items()):
+                ret_list.append((edge, k_edge[1], v_props, tuple([i[1] for i in sorted(v_edge, key=itemgetter(0))])))
         return ret_list
+
+    def get_weakly_connected_neighbor(self, cell: Cell2D):
+        ret_list = []
+        for edge in cell.iterate_edges():
+            for peer_k, peer_v in self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items():
+                for k, v in self._weak_edge_connections_props[peer_k].items():
+                    if k[1] != edge:
+                        ret_list.append((k[1], v))
+        return ret_list
+
 
     def get_cell_props(self, cell):
         return self.grid_interface.get_cell_props(cell)

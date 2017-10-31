@@ -52,8 +52,10 @@ def is_pow2(num: int):
 def is_between_incl(val, borders):
     return val <= max(borders) and val >= min(borders)
 
+
 def is_between(val, borders):
     return val < max(borders) and val > min(borders)
+
 
 def on_edge_incl(point: vertex_nD_type, edge: edge_nD_type):
     l, ch_coord = edge_length(edge)

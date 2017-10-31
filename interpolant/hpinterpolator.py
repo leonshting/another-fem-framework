@@ -150,7 +150,7 @@ class HPInterpolator:
         #                    for gll_points_sq in self.gll_points_squeezed]
 
         gll_points_traces = [
-            [self._trace_on_points(points=gll_points_sq, function=f) for gll_points_sq in self.gll_points_squeezed] for
+            [self.trace_on_points(points=gll_points_sq, function=f) for gll_points_sq in self.gll_points_squeezed] for
             f in trial_functions]
 
         epss_l = [self.I_rl * Matrix(gll_points_trace[1]) - Matrix(gll_points_trace[0]) for gll_points_trace in
@@ -201,7 +201,7 @@ class HPInterpolator:
         finally:
             self.I_rl_subbed = self.I_rl.subs({i: j for i, j in zip(self.free_symbols, self.opt_fit_result_int)})
             self.I_lr_subbed = self.I_lr.subs({i: j for i, j in zip(self.free_symbols, self.opt_fit_result_int)})
-
+    #to_impl
     def fit(self, constraints=True, risky_max_pow=False, **kwargs):
 
         MAX_POW = self._get_max_pow() + int(risky_max_pow)
@@ -220,7 +220,7 @@ class HPInterpolator:
                          constraints=constraints)
 
         self._print_opt_results_msg()
-
+    # toimpl
     def _print_opt_results_msg(self):
         if self.state == self.states[self.states_enum['SUCCESS']]:
             print('OK ' + self.state)
@@ -228,7 +228,7 @@ class HPInterpolator:
         else:
             print('Bad ' + self.state)
             return False
-
+    #to_--implement
     def get_interpolants(self):
         if self.state == self.states[self.states_enum['SUCCESS']]:
             return {'I_lr': np.array(self.I_lr_subbed).astype(np.float64),
@@ -272,7 +272,7 @@ class HPInterpolator:
     @classmethod
     def _orders_structure_checkup(cls, orders):
         return cls._is_iterable_of_iterable(orders)
-
+    #impl
     @staticmethod
     def trace_on_points(points, function):
         return np.vectorize(function)(np.array(points))
@@ -292,10 +292,12 @@ class HPInterpolator:
             return correct
 
     # should be used only if sizes_strucutre is ok
+    #done in constructor
     @staticmethod
     def _cum_size(sizes):
         return [sizes[0][0][0], sizes[0][-1][-1]]
 
+    #impl
     def _opt_callback(self, f_obj):
         def loss(xk):
             print('Loss: {}'.format(f_obj(xk)))
@@ -303,6 +305,7 @@ class HPInterpolator:
 
         return loss
 
+    #impl
     @staticmethod
     def _is_iterable_of_iterable(instance):
         correct = isinstance(instance, Iterable)
@@ -312,6 +315,7 @@ class HPInterpolator:
             correct = correct and isinstance(i, Iterable)
         return correct
 
+    #impl
     def _construct_trial_functions(self, power, orders_forward=2):
         ret_funcs = []
         for p in range(power, power + orders_forward):

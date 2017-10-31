@@ -1,7 +1,5 @@
 # coding: utf-8
 
-import numpy as np
-
 from common.polynom_factory import glob_points, glob_weights
 from interpolant.helpers import *
 
@@ -44,8 +42,7 @@ class Cell2PointsConverter:
     def _scale_to_01(self):
         pass
 
-    @staticmethod
-    def _check_constructor_arguments(**kwargs):
+    def _check_constructor_arguments(self, **kwargs):
         possible_arguments = ['orders', 'sizes', 'type']
         for arg in possible_arguments:
             if arg in kwargs and not is_iterable_of_iterable(kwargs[arg]):
@@ -56,6 +53,9 @@ class Cell2PointsConverter:
 
         if 'sizes' in kwargs and not (kwargs['sizes'][0][0][0] == kwargs['sizes'][1][0][0]
          and kwargs['sizes'][0][-1][-1] == kwargs['sizes'][1][-1][-1]):
+            return False, 'Ends of cuts must match'
+
+        if 'sizes' in kwargs and not self._sizes_structure_checkup(kwargs['sizes']):
             return False, 'Ends of cuts must match'
 
         if 'type' in kwargs and 'type' not in ['uniform', 'lobatto']:
@@ -74,3 +74,20 @@ class Cell2PointsConverter:
 
     def get_weights_and_points(self):
         return self.diag_weights, self.points_squeezed
+
+    def get_cellwise_weights(self):
+        return self.weights
+
+    @staticmethod
+    def _sizes_structure_checkup(sizes):
+        correct = is_iterable_of_iterable(sizes)
+        if not correct:
+            return False
+        else:
+            for size in sizes:
+                aux_bool = True
+                for s_val, s_val_next in zip(size[:-1], size[1:]):
+                    aux_bool = aux_bool and (s_val[-1] == s_val[0])
+                correct = correct and aux_bool
+            correct = correct and (sizes[0][0][0] == sizes[1][0][0] and sizes[0][-1][-1] == sizes[1][-1][-1])
+            return correct

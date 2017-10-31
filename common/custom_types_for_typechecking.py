@@ -1,5 +1,4 @@
-from typing import TypeVar, Tuple
-
+from typing import TypeVar, Tuple, List
 
 numeric_type = TypeVar('numeric', int, float)
 
@@ -26,4 +25,7 @@ domain_edge_nD_type = TypeVar('domain_edge_nd', domain_edge_2D_type, domain_edge
 domain_size_2D_type = domain_vertex_2D_type
 domain_size_3D_type = domain_vertex_3D_type
 domain_size_nD_type = TypeVar('domain_size_nd', domain_size_2D_type, domain_size_3D_type)
+
+interpolator_orders = List[List[int]]
+interpolator_sizes = List[List[Tuple[numeric_type, numeric_type]]]
 

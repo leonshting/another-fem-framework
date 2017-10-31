@@ -41,10 +41,14 @@ class AssemblyInterface2D:
             if yield_cell:
                 yield {'ddofs': ret_ddofs,
                        'wconn': self.allocator.get_weakly_connected_edges(cell),
+                       'neighbor': self.allocator.get_weakly_connected_neighbor(cell),
                        'cell': cell,
                        'cell_props': self.allocator.get_cell_props(cell)}
             else:
-                yield {'ddofs': ret_ddofs, 'wconn': self.allocator.get_weakly_connected_edges(cell)}
+                yield {'ddofs': ret_ddofs,
+                       'wconn': self.allocator.get_weakly_connected_edges(cell),
+                       'neighbor': self.allocator.get_weakly_connected_neighbor(cell)
+                       }
 
     def get_ddof_count(self):
         return self.allocator.ddof_cnt

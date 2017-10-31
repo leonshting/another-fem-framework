@@ -15,7 +15,6 @@ class MatrixAssembler2D():
         self.grid_domain = grid_domain
         self._gg_matrices = {}
         self._ff_matrices = {}
-        self._fg_matrices = {}
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5'}
@@ -48,18 +47,23 @@ class MatrixAssembler2D():
         M_source.close()
 
     def assemble(self):
-        from matplotlib import pyplot as plt
         glob_matrix = csr_matrix((self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
         for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
             trans_matrix = coo_matrix(([1] * len(props['ddofs']), (list(range(len(props['ddofs']))),props['ddofs'])),
                                       shape=(len(props['ddofs']), self.assembly_interface.get_ddof_count())).tocsr()
 
-            local_gg = self._get_local_gg_matrix(distribution=props['cell_props'][1], order=props['cell_props'][0])
-            local_ff = self._get_local_ff_matrix(distribution=props['cell_props'][1], order=props['cell_props'][0], cell=props['cell'])
+            local_gg = self._get_local_gg_matrix(
+                distribution=props['cell_props'][1],
+                order=props['cell_props'][0]
+            )
+            local_ff = self._get_local_ff_matrix(
+                distribution=props['cell_props'][1],
+                order=props['cell_props'][0],
+                cell=props['cell']
+            )
 
-            glob_matrix += trans_matrix.T * np.dot(np.linalg.inv(local_ff),local_gg) * trans_matrix
-            if num % 100 == 0:
-                plt.spy(glob_matrix)
-                plt.show()
-        plt.spy(glob_matrix)
-        plt.show()
+
+            #self.assembly_interface.
+            glob_matrix += trans_matrix.T * local_gg * trans_matrix
+
+
