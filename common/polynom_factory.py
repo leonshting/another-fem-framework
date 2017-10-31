@@ -53,8 +53,8 @@ def glob_points(order, size):
     to_mult = (size[1] - size[0]) / 2.
     return np.array(list((roots_arr + 1) * to_mult + size[0]))
 
-def glob_weights(order, size=0):
-    return np.array(gauss_lobatto(n=order + 1)[1], dtype=np.float32)
+def glob_weights(order, size=(0,1)):
+    return (max(size) - min(size)) * np.array(gauss_lobatto(n=order + 1)[1], dtype=np.float32)
 
 def gen_nodes(order, dim, size, distribution='uniform'):
     # order - polynomial power
