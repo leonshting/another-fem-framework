@@ -1,6 +1,8 @@
 #coding-utf8
 from functools import reduce
 
+from scipy.sparse import coo_matrix
+
 from .custom_types_for_typechecking import *
 
 import numpy as np
@@ -73,3 +75,13 @@ def on_edge(point: vertex_nD_type, edge: edge_nD_type):
 
 def renorm_tuple(tup: Tuple, vice_norm: Tuple, new_norm: Tuple):
     return tuple([i*n//v for i,n,v in zip(tup, new_norm, vice_norm)])
+
+
+def distributed_eye(pairtuples, shape):
+    d_loc = [d[0] for d in pairtuples]
+    d_glob = [d[1] for d in pairtuples]
+    return coo_matrix(([1] * len(pairtuples), (d_loc, d_glob)), shape=shape)
+
+
+def distributed_eye_easy(pairtuples, axis2shape):
+    return distributed_eye(pairtuples=pairtuples, shape=(len(pairtuples), axis2shape))

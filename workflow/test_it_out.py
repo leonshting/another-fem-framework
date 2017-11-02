@@ -1,4 +1,4 @@
-import h5py
+#import h5py
 
 from operator_assembler.assembly_interface import AssemblyInterface2D
 from operator_assembler.n_to_1_ddof_allocator import Nto1Allocator2D
@@ -16,7 +16,7 @@ data_end = tuple([i+j for i,j in zip(data_start, data_shape)])
 
 #h5_data = h5py.File('../../../GM_L3D/600/state/viz_GM_1.h5')['index'][0]
 #data = h5_data[data_start[0]:data_end[0], data_start[1]:data_end[1]]
-data = imread('/Users/leonshting/Programming/Schlumberger/model/bhi2_labelled0000.tif')[data_start[0]:data_end[0], data_start[1]:data_end[1]]
+data = imread('/Users/marusy/Programming/model/bhi2_labelled0000.tif')[data_start[0]:data_end[0], data_start[1]:data_end[1]]
 
 grid_domain = GridDomain(integer_size=data_shape, domain_size=(1.,1.))
 gm = GridManager()

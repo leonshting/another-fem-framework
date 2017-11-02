@@ -52,11 +52,14 @@ class BaseAllocator2D:
                 self._vertex_ddof_index[(cell.ll_vertex, vertex)] = (local_ddof, self._ddof_cnt)
                 self._ddof_cnt += 1
 
-    def _get_flat_list_of_ddofs(self, edge: edge_2D_type, cell: Cell2D):
+    def get_flat_list_of_ddofs(self, edge: edge_2D_type, cell: Cell2D):
         edge_ddofs = self._edge_ddof_index[(cell.ll_vertex, edge)]
         vertex_ddofs = [self._vertex_ddof_index[(cell.ll_vertex, host_vertex)] for host_vertex in edge]
 
         return [vertex_ddofs[0]] + edge_ddofs + [vertex_ddofs[1]]
+
+    def get_flat_list_of_ddofs_global(self, edge: edge_2D_type, cell: Cell2D):
+        return [i[1] for i in self.get_flat_list_of_ddofs(edge=edge, cell=cell)]
 
     def get_cell_list_of_ddofs(self, cell: Cell2D):
         ddof_list = []
@@ -79,10 +82,8 @@ class BaseAllocator2D:
     def get_weakly_connected_edges(self, cell: Cell2D):
         ret_list = []
         for edge in cell.iterate_edges():
-            for (k_edge, v_edge), (k_props, v_props) in \
-                zip(self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items(),
-                    self._weak_edge_connections_props.get((cell.ll_vertex, edge), {}).items()):
-                ret_list.append((edge, k_edge[1], v_props, tuple([i for i in sorted(v_edge, key=itemgetter(0))])))
+            for k_edge, v_edge in self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items():
+                ret_list.append((edge, k_edge[1], tuple([i for i in sorted(v_edge, key=itemgetter(0))])))
         return ret_list
 
     def get_weakly_connected_neighbor(self, cell: Cell2D, return_self=True):

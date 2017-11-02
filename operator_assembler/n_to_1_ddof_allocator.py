@@ -39,9 +39,9 @@ class Nto1Allocator2D(BaseAllocator2D):
                           self.grid_interface.get_cell_props(p_cell) for p_edge, p_cell in peer.items()}
 
         host_list = {(host_cell.ll_vertex, host_edge):
-                         self._get_flat_list_of_ddofs(host_edge, host_cell)}
+                         self.get_flat_list_of_ddofs(host_edge, host_cell)}
         peer_list = {(p_cell.ll_vertex, p_edge[1]):
-                         self._get_flat_list_of_ddofs(p_edge[1], p_cell) for p_edge, p_cell in peer.items()}
+                         self.get_flat_list_of_ddofs(p_edge[1], p_cell) for p_edge, p_cell in peer.items()}
 
         if how in ['smaller', 'size_match']:
             self._weak_edge_connections[(host_cell.ll_vertex, host_edge)] = peer_list
