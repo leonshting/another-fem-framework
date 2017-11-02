@@ -1,3 +1,4 @@
+from itertools import chain
 from operator import itemgetter
 from typing import Dict
 
@@ -57,6 +58,15 @@ class BaseAllocator2D:
 
         return [vertex_ddofs[0]] + edge_ddofs + [vertex_ddofs[1]]
 
+    def _get_cell_list_of_ddofs(self, cell: Cell2D):
+        ddof_list = []
+        for edge in cell.iterate_edges():
+            ddof_list.append(self.get_ddof_edge(cell, edge))
+        for vertex in cell.iterate_vertices():
+            ddof_list.append(self.get_ddof_vertex(cell=cell, vertex=vertex))
+        ddof_list.extend(self.get_ddof_int(cell=cell))
+        return sorted(chain(*ddof_list), key=itemgetter(0))
+
     def get_ddof_edge(self, cell: Cell2D, edge: edge_2D_type):
         return self._edge_ddof_index.get((cell.ll_vertex, edge))
 
@@ -72,7 +82,7 @@ class BaseAllocator2D:
             for (k_edge, v_edge), (k_props, v_props) in \
                 zip(self._weak_edge_connections.get((cell.ll_vertex, edge), {}).items(),
                     self._weak_edge_connections_props.get((cell.ll_vertex, edge), {}).items()):
-                ret_list.append((edge, k_edge[1], v_props, tuple([i[1] for i in sorted(v_edge, key=itemgetter(0))])))
+                ret_list.append((edge, k_edge[1], v_props, tuple([i for i in sorted(v_edge, key=itemgetter(0))])))
         return ret_list
 
     def get_weakly_connected_neighbor(self, cell: Cell2D):
@@ -83,7 +93,6 @@ class BaseAllocator2D:
                     if k[1] != edge:
                         ret_list.append((k[1], v))
         return ret_list
-
 
     def get_cell_props(self, cell):
         return self.grid_interface.get_cell_props(cell)

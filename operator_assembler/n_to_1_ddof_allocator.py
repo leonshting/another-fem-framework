@@ -1,5 +1,4 @@
-from itertools import chain
-from typing import Dict, List
+from typing import Dict
 
 from grid.cell import Cell2D
 from operator_assembler.base_ddof_allocator import BaseAllocator2D
@@ -9,12 +8,13 @@ from common.custom_types_for_typechecking import *
 class Nto1Allocator2D(BaseAllocator2D):
     def __init__(self, *args, **kwargs):
         super(Nto1Allocator2D, self).__init__(*args, **kwargs)
+        self.priority = ['size_match', 'match', 'border', 'smaller', 'bigger']
 
     def _make_ddof_index(self):
         for num_layer, cell in self.grid_interface.iterate_cells_fstb():
-            for edge in cell.iterate_edges():
-                adj_edge_cells = self.grid_interface.query_adj_cells_by_edge(cell, edge, num_layer=num_layer)
-                self._connect_egdes(host_edge=edge, peer=adj_edge_cells, host_cell=cell)
+            adj_cells_stitching_modes = self._stitching_modes(num_layer=num_layer, cell=cell)
+            for edge, adj_edge_cells, mode in adj_cells_stitching_modes:
+                self._connect_edges(host_edge=edge, peer=adj_edge_cells, host_cell=cell, stitching_mode=mode)
             self._allocate_interior_ddofs(host_cell=cell)
 
     @staticmethod
@@ -54,20 +54,31 @@ class Nto1Allocator2D(BaseAllocator2D):
         else:
             raise Exception('Program flow cannot turn here')
 
-    def _connect_egdes(self, host_edge: edge_2D_type,
+    def _stitching_modes(self, cell: Cell2D, num_layer: int):
+        adj_cells_stitching_modes = []
+        for edge in cell.iterate_edges():
+            adj_edge_cells = self.grid_interface.query_adj_cells_by_edge(cell, edge, num_layer=num_layer)
+            host_order, host_dist = self.grid_interface.get_cell_props(cell)
+            peer_props = [self.grid_interface.get_cell_props(p_cell) for p_cell in adj_edge_cells.values()]
+
+            stitching_mode = self._get_stitching_mode(
+                edge, adj_edge_cells,
+                host_props=(host_order, host_dist),
+                peer_props=peer_props)
+            adj_cells_stitching_modes.append((edge, adj_edge_cells, stitching_mode))
+
+        return sorted(adj_cells_stitching_modes, key=lambda x: self.priority.index(x[2]))
+
+    def _connect_edges(self, host_edge: edge_2D_type,
                        peer: Dict[Tuple, Cell2D],
-                       host_cell: Cell2D):
+                       host_cell: Cell2D,
+                       stitching_mode: str):
 
         host_order, host_dist = self.grid_interface.get_cell_props(host_cell)
         peer_props = [self.grid_interface.get_cell_props(p_cell) for p_cell in peer.values()]
 
         normed_edge_host = host_cell.edge_normed_by_size(host_edge)
         host_cell_fe = self._get_fe_cell(size=host_cell.size, order=host_order, dist=host_dist)
-
-        stitching_mode = self._get_stitching_mode(
-                host_edge, peer,
-                host_props=(host_order, host_dist),
-                peer_props=peer_props)
 
         if stitching_mode in ['border', 'smaller', 'bigger', 'size_match']:
             self._allocate_local_ddofs_edge(edge=host_edge, cell=host_cell, cell_fe=host_cell_fe)
