@@ -18,13 +18,15 @@ class InterfaceDofAllocator2D:
         self._default_order = kwargs.get('default_order', 3)
         self._default_dist = kwargs.get('default_dist', 'lobatto')
 
-    def query_adj_cells_by_edge(self, cell: Cell2D, edge: edge_2D_type, num_layer: int):
+    def query_adj_cells_by_edge(self, cell: Cell2D, edge: edge_2D_type, num_layer: int, size_rel_filter=None):
         if num_layer == 0:
             join_adj_dict = {1: 'bigger', 0: 'same'}
         elif num_layer == self.num_layers - 1:
             join_adj_dict = {0: 'same', -1: 'smaller'}
         else:
             join_adj_dict = {0: 'same', 1: 'bigger', -1: 'smaller'}
+        if size_rel_filter is not None:
+            join_adj_dict = {k:v for k,v in join_adj_dict.items() if v in size_rel_filter}
         adj_cells_edge2edge = {}
         for tag, layer_candidate in [(alias, self.layers[num_layer + nl]) for nl, alias in join_adj_dict.items()]:
             for edge_candidate in cell.adj_edge_variants(edge)[tag]:
@@ -61,6 +63,16 @@ class InterfaceDofAllocator2D:
     def iterate_cells_fstb(self, yield_layer_num=True) -> Generator[cell_yield_type_2D, None, None]:
         """iterates cells layer by layer from small to big"""
         for layer in self.layers:
+            for cell in layer.iterate_cells():
+                ret_list = []
+                if yield_layer_num:
+                    ret_list.append(layer.layer_num)
+                ret_list.append(cell)
+                yield tuple(ret_list)
+
+    def iterate_cells_fbts(self, yield_layer_num=True) -> Generator[cell_yield_type_2D, None, None]:
+        """iterates cells layer by layer from small to big"""
+        for layer in self.layers[::-1]:
             for cell in layer.iterate_cells():
                 ret_list = []
                 if yield_layer_num:
