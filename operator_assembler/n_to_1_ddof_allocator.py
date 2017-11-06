@@ -1,5 +1,6 @@
 from typing import Dict
 
+from common.polynom_factory import gen_nodes
 from grid.cell import Cell2D
 from operator_assembler.base_ddof_allocator import BaseAllocator2D
 from common.custom_types_for_typechecking import *
@@ -111,6 +112,8 @@ class Nto1Allocator2D(BaseAllocator2D):
                     if to_merge_with_vertex is not None:
                         self._vertex_ddof_index[(host_cell.ll_vertex, vertex_host)] = \
                             (local_ddof_host, to_merge_with_vertex[1])
+                        self._vertex_ddof_index[(peer_cell.ll_vertex, vertex_peer)] = \
+                            (local_ddof_peer, to_merge_with_vertex[1])
                     else:
                         self._vertex_ddof_index[(host_cell.ll_vertex, vertex_host)] = \
                             (local_ddof_host, self._ddof_cnt)
