@@ -70,6 +70,9 @@ class BaseAllocator2D:
         ddof_list.extend(self.get_ddof_int(cell=cell))
         return sorted(ddof_list, key=itemgetter(0))
 
+    def get_cell_list_of_ddofs_global(self, cell:Cell2D):
+        return [i[1] for i in self.get_cell_list_of_ddofs(cell)]
+
     def get_ddof_edge(self, cell: Cell2D, edge: edge_2D_type):
         return self._edge_ddof_index.get((cell.ll_vertex, edge))
 

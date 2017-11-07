@@ -22,3 +22,10 @@ def plot_surface_unstructured_w_dict(point_val_dict, plot_domain_shape, int_doma
     plt.show()
 
 
+def plot_sparse_pattern(matrix):
+    from matplotlib import pyplot as plt
+    plt.spy(matrix, markersize=0.5)
+    plt.show()
+
+
+

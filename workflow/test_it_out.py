@@ -45,14 +45,14 @@ MA.assembled[0]
 #    rel[kp] = vp/vi
 
 #print(rel)
-#visual.plot_surface_unstructured_w_dict(
-#    point_val_dict=grid_domain.devectorize_vector(MA.assembled * sine_test),
-#    plot_domain_shape=grid_domain.domain_size,
-#    int_domain_shape=grid_domain.integer_size
-#)
-#
-#visual.plot_surface_unstructured_w_dict(
-#    point_val_dict=grid_domain.devectorize_function(lambda x,y: np.sin(x+y)),
-#    plot_domain_shape=grid_domain.domain_size,
-#    int_domain_shape=grid_domain.integer_size
-#)
+visual.plot_surface_unstructured_w_dict(
+    point_val_dict=grid_domain.devectorize_vector(MA.assembled * sine_test),
+    plot_domain_shape=grid_domain.domain_size,
+    int_domain_shape=grid_domain.integer_size
+)
+
+visual.plot_surface_unstructured_w_dict(
+    point_val_dict=grid_domain.devectorize_function(lambda x,y: np.sin(x+y)),
+    plot_domain_shape=grid_domain.domain_size,
+    int_domain_shape=grid_domain.integer_size
+)
