@@ -23,23 +23,32 @@ class MatrixAssembler2D():
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {
-            'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5'}
+            # 'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
+            'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
+        }
 
         self._get_local_matrices_from_file('lobatto')
 
-        self.I_s2b = np.array([[0.62584577, 0.74287624, -0.69579697, 0.32707497],
-                               [0.37035602, 0.71462439, -0.10993613, 0.02495572],
-                               [0.05668829, 0.63887521, 0.44998043, -0.14554393],
-                               [-0.13696959, 0.43779799, 0.81535681, -0.11618522],
-                               [-0.10971663, 0.36700592, 0.84584219, -0.10313148],
-                               [-0.14274098, 0.30368795, 0.27922416, 0.55982887],
-                               [0.77515993, -1.73943959, 1.7395301, 0.22474957]])
+        self.I_s2b = np.array([[0.94748435, 0.08218652, 0.00679549, -0.03646636],
+                               [0.31304669, 0.81263552, -0.09974331, -0.02593889],
+                               [-0.12478712, 1.00624854, 0.11348253, 0.00505606],
+                               [0.22008957, 0.05460024, 0.68518757, 0.04012262],
+                               [-0.01387373, 0.20320454, 0.7569224, 0.05374679],
+                               [-0.06389369, -0.06951784, 1.05398856, 0.07942297],
+                               [0.0598758, 0.04575923, -0.50042152, 1.39478649]])
 
-        self.I_b2s = np.array(
-            [[0.31292288, 0.92589005, 0.14172072, -0.13696959, -0.27429158, -0.35685246, 0.38757996],
-             [0.07428762, 0.3573122, 0.3194376, 0.0875596, 0.18350296, 0.15184398, -0.17394396],
-             [-0.0695797, -0.05496806, 0.22499022, 0.16307136, 0.42292109, 0.13961208, 0.17395301],
-             [0.16353748, 0.06238929, -0.36385983, -0.11618522, -0.2578287, 1.39957218, 0.11237478]])
+        self.I_b2s = np.array([[4.73742176e-01, 7.82616722e-01, -3.11967812e-01,
+                                2.20089572e-01, -3.46843350e-02, -1.59734222e-01,
+                                2.99378982e-02],
+                               [8.21865191e-03, 4.06317760e-01, 5.03124268e-01,
+                                1.09200474e-02, 1.01602272e-01, -3.47589224e-02,
+                                4.57592318e-03],
+                               [6.79548951e-04, -4.98716573e-02, 5.67412656e-02,
+                                1.37037514e-01, 3.78461201e-01, 5.26994280e-01,
+                                -5.00421522e-02],
+                               [-1.82331802e-02, -6.48472355e-02, 1.26401418e-02,
+                                4.01226215e-02, 1.34366971e-01, 1.98557435e-01,
+                                6.97393247e-01]])
 
     def _get_local_ff_matrix(self, distribution, order, cell):
         if self._ff_matrices.get((order, distribution, cell.size)) is None:
@@ -132,67 +141,73 @@ class MatrixAssembler2D():
         return dofs_list
 
     def assemble(self, verbose=True):
+        future_ignore = set()
         glob_matrix = csr_matrix((self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
         gather_evth = []
         for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
-            peer_merged = csr_matrix(
-                (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
-            host_local = self._distribute_one_cell(props['cell'])
+            #bad way probably refactor
+            if props['cell'].ll_vertex not in future_ignore:
+                peer_merged = csr_matrix(
+                    (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
+                host_local = self._distribute_one_cell(props['cell'])
 
-            # TODO: rewrite to multiple merge
-            host_dofs_to_merge = []
-            peer_dofs_to_merge = []
+                # TODO: rewrite to multiple merge
+                host_dofs_to_merge = []
+                peer_dofs_to_merge = []
 
+                local_dist_merge = []
 
-            local_dist_merge = []
+                host_merge_d_cnt = Counter()
 
-            host_merge_d_cnt = Counter()
+                for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
+                    peer_merged += self.merge_two_cells(cell_1=adj_cells[0][1], cell_2=adj_cells[1][1])
+                    tmp_peer = self.stack_wcon_dofs(weak_conns)
+                    tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
+                        edge=k_edge, cell=props['cell'])
 
-            for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
-                peer_merged += self.merge_two_cells(cell_1=adj_cells[0][1], cell_2=adj_cells[1][1])
-                tmp_peer = self.stack_wcon_dofs(weak_conns)
-                tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
-                    edge=k_edge, cell=props['cell'])
+                    peer_dofs_to_merge.append(tmp_peer)
+                    host_dofs_to_merge.append(tmp_host)
 
-                peer_dofs_to_merge.append(tmp_peer)
-                host_dofs_to_merge.append(tmp_host)
+                    local_dist_merge.append((
+                        0.5 * self._distribute_eye(tmp_peer) +
+                        0.5 * self._distribute_eye(tmp_host) +
+                        0.5 * self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) +
+                        0.5 * self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
+                    ))
 
-                local_dist_merge.append((
-                    1 * self._distribute_eye(tmp_peer) +
-                    1 * self._distribute_eye(tmp_host) +
-                    1 * self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) +
-                    1 * self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
-                ))
+                host_dofs_to_merge_unique = set([i for i in itertools.chain(*host_dofs_to_merge)])
+                peer_dofs_to_merge_unique = set([i for i in itertools.chain(*peer_dofs_to_merge)])
 
+                # in case of multiple merges
+                for host_d in itertools.chain(*host_dofs_to_merge):
+                    host_merge_d_cnt[host_d] += 1
 
-            host_dofs_to_merge_unique = set([i for i in itertools.chain(*host_dofs_to_merge)])
-            peer_dofs_to_merge_unique = set([i for i in itertools.chain(*peer_dofs_to_merge)])
+                adj_cells_entities = [j[1] for j in list(itertools.chain(*[i for i in props['adj_cells'].values()]))]
+                future_ignore.update([i.ll_vertex for i in adj_cells_entities])
+                host_dofs_independent = set(self.assembly_interface.allocator.
+                                            get_cell_list_of_ddofs_global(props['cell'])) - \
+                                        host_dofs_to_merge_unique
+                peer_dofs_independent = set(list(itertools.chain(
+                    *[self.assembly_interface.allocator.get_cell_list_of_ddofs_global(cell)
+                      for cell in adj_cells_entities]))) - peer_dofs_to_merge_unique
 
-            # in case of multiple merges
-            for host_d in itertools.chain(*host_dofs_to_merge):
-                host_merge_d_cnt[host_d] += 1
+                whole_dist = self._distribute_eye(host_dofs_independent) + \
+                             self._distribute_eye(peer_dofs_independent)
 
-            adj_cells_entities = [j[1] for j in list(itertools.chain(*[i for i in props['adj_cells'].values()]))]
+                print(peer_dofs_independent, host_dofs_independent, host_dofs_to_merge, peer_dofs_to_merge)
+                for dist in local_dist_merge:
+                    whole_dist += dist
 
-            host_dofs_independent = set(self.assembly_interface.allocator.
-                                        get_cell_list_of_ddofs_global(props['cell'])) - \
-                                    host_dofs_to_merge_unique
-            peer_dofs_independent = set(list(itertools.chain(
-                *[self.assembly_interface.allocator.get_cell_list_of_ddofs_global(cell)
-                  for cell in adj_cells_entities]))) - peer_dofs_to_merge_unique
+                gather_evth.append((local_dist_merge,
+                                    whole_dist,
+                                    self._distribute_eye(host_dofs_independent),
+                                    self._distribute_eye(peer_dofs_independent),
+                                    host_local,
+                                    peer_merged))
 
-            whole_dist = self._distribute_eye(host_dofs_independent) + \
-                         self._distribute_eye(peer_dofs_independent)
+                init_operator = peer_merged + host_local
 
-            print(peer_dofs_independent, host_dofs_independent, host_dofs_to_merge, peer_dofs_to_merge)
-            for dist in local_dist_merge:
-                whole_dist += dist
-
-            gather_evth.append((local_dist_merge, whole_dist, self._distribute_eye(host_dofs_independent), self._distribute_eye(peer_dofs_independent)))
-
-            init_operator = peer_merged + host_local
-
-            glob_matrix += whole_dist.T * init_operator * whole_dist
+                glob_matrix += whole_dist.T * init_operator * whole_dist
 
             if verbose:
                 print('\r', num, end='')

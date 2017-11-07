@@ -71,7 +71,7 @@ class OptSolve(VerbosePrinter):
         else:
             raise Exception('trial functions may be either polynomial (default) or chebyshev or custom')
         if tr_fun_option == 'custom':
-            pass
+            raise NotImplementedError
         else:
             self._trial_functions = self._construct_trial_functions(
                 self.strict_power,
@@ -150,7 +150,8 @@ class OptSolve(VerbosePrinter):
             for p in range(power, power + orders_forward):
                 mask = np.zeros(p + 1)
                 mask[p] = 1
-                ret_funcs.append(np.polynomial.Chebyshev(coef=mask, domain=self.cum_size))
+                for root_point in [0,1]:
+                    ret_funcs.append(lambda x: np.polynomial.Chebyshev(coef=mask, domain=self.cum_size)(x-root_point))
             return ret_funcs
         elif trial_functions_type == 'polynomial':
             for p in range(power, power + orders_forward):
