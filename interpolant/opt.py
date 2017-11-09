@@ -165,3 +165,6 @@ class OptSolve(VerbosePrinter):
                   end='\r')
 
         return loss
+
+    def _set_initial_guess(self):
+        pass

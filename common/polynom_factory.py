@@ -200,3 +200,16 @@ def local_gradfunc_matrix(order, dim, size=(0., 1.), distribution='globatto'):
         return (result, borderwise)
     else:
         raise BaseException("not implemented yet")
+
+
+def get_href_constraint_matrix(order, inversed=False, distribution='globatto'):
+    glob_func_on_loc_mesh = np.zeros((order+1, order+1))
+    funcs_prim, glob_grid = polynom_factory(dim=1, order=order,size=(0,2), distribution=distribution)
+    funcs, local_grid = polynom_factory(dim=1, order=order,size=(0,1), distribution=distribution)
+    for num1, i in enumerate(local_grid):
+        for num2, prim_f in enumerate(funcs_prim):
+            glob_func_on_loc_mesh[num1, num2] = prim_f.subs({'x_1':i[0]})
+    if(inversed):
+        return np.linalg.inv(glob_func_on_loc_mesh)
+    else:
+        return glob_func_on_loc_mesh
