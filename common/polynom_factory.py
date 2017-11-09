@@ -135,8 +135,41 @@ def local_gradgrad_matrix(order, dim, size=(0., 1.), distribution='uniform'):
                                                               zip(symbols, sizes)])
     return (ret_M, ret_indices)
 
-def local_funcfunc_matrix(order, dim, size=(0., 1.), distribution='uniform'):
+def local_index(order, dim, size=(0., 1.), distribution='uniform'):
+    ret_indices = {}
+    sizes = populate_size(dim=dim, size=size)
+    funcs, nodes = polynom_factory(order=order, dim=dim, size=sizes, distribution=distribution)
+    for num, node in enumerate(nodes):
+        ret_indices[node] = num
+    return ret_indices
+
+def local_gradients(order, dim, size=(0., 1.), distribution='uniform'):
     # gradgrad matrix for set of basis functions
+    sizes = populate_size(dim=dim, size=size)
+    symbols = [sympy.Symbol('x_{}'.format(i)) for i in range(1, dim + 1)]
+    ret_indices = {}
+    funcs, nodes = polynom_factory(order=order, dim=dim, size=sizes, distribution=distribution)
+    for num, node in enumerate(nodes):
+        ret_indices[node] = num
+    gradients = [gradient(func, symbols) for func in funcs]
+    return gradients
+
+def local_gradgrad_functions(order, dim, size=(0., 1.), distribution='uniform'):
+    sizes = populate_size(dim=dim, size=size)
+    symbols = [sympy.Symbol('x_{}'.format(i)) for i in range(1, dim + 1)]
+    ret_indices = {}
+    funcs, nodes = polynom_factory(order=order, dim=dim, size=sizes, distribution=distribution)
+    for num, node in enumerate(nodes):
+        ret_indices[node] = num
+    gradients = [gradient(func, symbols) for func in funcs]
+    ret_list = {}
+    for bundle in itertools.product(enumerate(gradients), repeat=2):
+        ret_list[(bundle[0][0], bundle[1][0])] = (sum([i * j for i, j in zip(bundle[0][1], bundle[1][1])]))
+    return ret_list, symbols
+
+
+def local_funcfunc_matrix(order, dim, size=(0., 1.), distribution='uniform'):
+    # funcfunc matrix for set of basis functions
     sizes = populate_size(dim=dim, size=size)
     symbols = [sympy.Symbol('x_{}'.format(i)) for i in range(1, dim + 1)]
     shape = (order + 1) ** dim

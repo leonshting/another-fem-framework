@@ -23,8 +23,8 @@ class MatrixAssembler2D():
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {
-            'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
-            #'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
+            #'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
+            'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
             #'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/globatto_matrices.h5'
         }
 
