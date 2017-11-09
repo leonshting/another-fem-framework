@@ -23,37 +23,29 @@ class MatrixAssembler2D():
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {
-            'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
+            #'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
             #'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
+            'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/globatto_matrices.h5'
         }
 
         self._get_local_matrices_from_file('lobatto')
 
-        #self.I_s2b = np.array([[0.94748435, 0.08218652, 0.00679549, -0.03646636],
-        #                       [0.31304669, 0.81263552, -0.09974331, -0.02593889],
-        #                       [-0.12478712, 1.00624854, 0.11348253, 0.00505606],
-        #                       [0.22008957, 0.05460024, 0.68518757, 0.04012262],
-        #                       [-0.01387373, 0.20320454, 0.7569224, 0.05374679],
-        #                       [-0.06389369, -0.06951784, 1.05398856, 0.07942297],
-        #                       [0.0598758, 0.04575923, -0.50042152, 1.39478649]])
-        #
-        #self.I_b2s = np.array([[4.73742176e-01, 7.82616722e-01, -3.11967812e-01,
-        #                        2.20089572e-01, -3.46843350e-02, -1.59734222e-01,
-        #                        2.99378982e-02],
-        #                       [8.21865191e-03, 4.06317760e-01, 5.03124268e-01,
-        #                        1.09200474e-02, 1.01602272e-01, -3.47589224e-02,
-        #                        4.57592318e-03],
-        #                       [6.79548951e-04, -4.98716573e-02, 5.67412656e-02,
-        #                        1.37037514e-01, 3.78461201e-01, 5.26994280e-01,
-        #                        -5.00421522e-02],
-        #                       [-1.82331802e-02, -6.48472355e-02, 1.26401418e-02,
-        #                        4.01226215e-02, 1.34366971e-01, 1.98557435e-01,
-        #                        6.97393247e-01]])
-        #self.I_s2b = np.array([[1.,0.],
-        #                       [0.5, 0.5],
-        #                       [0.,1.]])
-        #self.I_b2s = np.array([[0.5, 0.5, 0.],
-        #                       [0., 0.5, 0.5]])
+        #self.I_b2s = np.array(
+        #    [[0.47913998,0.6452334,-0.21919967,0.02834773,0.39265603,-0.39775608,0.07157862],
+        #     [0.03097077,0.37368352,0.51547025,0.09433045,-0.05016152,0.07682102,-0.04111448],
+        #     [-0.04111448,0.07682102,-0.05016152,0.09433045,0.51547025,0.37368352,0.03097077],
+        #     [0.07157862,-0.39775608,0.39265603,0.02834773,-0.21919967,0.6452334,0.47913998]])
+
+        #self.I_s2b = np.array(
+        #    [[ 0.95827995,  0.30970766, -0.41114484,  0.14315723],
+        #     [ 0.25809336,  0.74736704,  0.15364203, -0.15910243],
+        #     [-0.08767987,  1.03094049, -0.10032303,  0.15706241],
+        #     [ 0.02834773,  0.47165227,  0.47165227,  0.02834773],
+        #     [ 0.15706241, -0.10032303,  1.03094049, -0.08767987],
+        #     [-0.15910243,  0.15364203,  0.74736704,  0.25809336],
+        #     [ 0.14315723, -0.41114484,  0.30970766,  0.95827995]]
+        #)
+
         self.I_b2s = np.array([[ 0.57288245,  0.59966694,  0.0802658 , -0.27140653,  0.01859134],
                                [-0.02286845,  0.4179349 ,  0.2098671 ,  0.4179349 , -0.02286845],
                                [ 0.01859134, -0.27140653,  0.0802658 ,  0.59966694,  0.57288245]])
@@ -244,6 +236,7 @@ class MatrixAssembler2D():
                 init_operator = peer_merged + host_local
                 init_mass = peer_mass_merged + mass_local
 
+                self.half_glob = init_operator * whole_dist
                 glob_matrix += whole_dist.T * init_operator * whole_dist
                 glob_mass_matrix += whole_dist.T * init_mass * whole_dist
 
@@ -251,4 +244,5 @@ class MatrixAssembler2D():
                 print('\r', num, end='')
         self.assembled = glob_matrix
         self.assembled_mass = glob_mass_matrix
+
         return gather_evth
