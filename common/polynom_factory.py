@@ -7,6 +7,7 @@ from sympy.core import S, Dummy, pi
 from sympy.polys.orthopolys import legendre_poly
 from sympy.polys.rootoftools import RootOf
 
+
 def gauss_lobatto(n, n_digits=10):
     x = Dummy("x")
     p = legendre_poly(n - 1, x, polys=True)
@@ -25,6 +26,7 @@ def gauss_lobatto(n, n_digits=10):
     w.append((S(2) / (n * (n - 1))).n(n_digits))
     return xi, w
 
+
 def populate_size(dim, size):
     shape = np.array(size).shape
     if (len(shape) == 1):
@@ -36,11 +38,13 @@ def populate_size(dim, size):
     else:
         raise BaseException("invalid dimensions")
 
+
 def gl_points(order, size):
     to_mult = (size[1] - size[0]) / 2.
     return np.array([float(size[0])] + (
-    list(((np.polynomial.legendre.leggauss(order - 1)[0]) + 1) * to_mult + size[0]) if order > 1 else []) + [
+        list(((np.polynomial.legendre.leggauss(order - 1)[0]) + 1) * to_mult + size[0]) if order > 1 else []) + [
                         float(size[1])])
+
 
 def gc_points(order, size):
     to_mult = (size[1] - size[0]) / 2.
@@ -48,13 +52,16 @@ def gc_points(order, size):
     return np.array(
         [float(size[0])] + (list((roots_arr + 1) * to_mult + size[0]) if order > 1 else []) + [float(size[1])])
 
+
 def glob_points(order, size):
     roots_arr = np.array(gauss_lobatto(n=order + 1)[0], dtype=np.float32)
     to_mult = (size[1] - size[0]) / 2.
     return np.array(list((roots_arr + 1) * to_mult + size[0]))
 
-def glob_weights(order, size=(0,1)):
+
+def glob_weights(order, size=(0, 1)):
     return (max(size) - min(size)) * np.array(gauss_lobatto(n=order + 1)[1], dtype=np.float32)
+
 
 def gen_nodes(order, dim, size, distribution='uniform'):
     # order - polynomial power
@@ -74,10 +81,12 @@ def gen_nodes(order, dim, size, distribution='uniform'):
         nodes.append(i)
     return nodes
 
+
 def iterate_powers(order, dim):
     ## ditributes total order b/w dimensions
     for i in itertools.product(range(order + 1), repeat=dim):
         yield i
+
 
 def polynom_factory(order=2, dim=2, size=(0., 1.), distribution='uniform', ret_argmatrix=False):
     # providing list of lambdas defined on unit square - [0,1]^2 or another customizable size
@@ -102,6 +111,7 @@ def polynom_factory(order=2, dim=2, size=(0., 1.), distribution='uniform', ret_a
     else:
         return funcs, nodes
 
+
 def polynom_lambda(order, dim, **kwargs):
     # makes symbolic function from set of coeffs
     symbols = [sympy.Symbol('x_{}'.format(i)) for i in range(1, dim + 1)]
@@ -115,8 +125,10 @@ def polynom_lambda(order, dim, **kwargs):
         func += arg * tmp_func
     return func
 
+
 def gradient(symfunc, symbols):
     return [sympy.diff(symfunc, symbol) for symbol in symbols]
+
 
 def local_gradgrad_matrix(order, dim, size=(0., 1.), distribution='uniform'):
     # gradgrad matrix for set of basis functions
@@ -135,6 +147,7 @@ def local_gradgrad_matrix(order, dim, size=(0., 1.), distribution='uniform'):
                                                               zip(symbols, sizes)])
     return (ret_M, ret_indices)
 
+
 def local_index(order, dim, size=(0., 1.), distribution='uniform'):
     ret_indices = {}
     sizes = populate_size(dim=dim, size=size)
@@ -142,6 +155,7 @@ def local_index(order, dim, size=(0., 1.), distribution='uniform'):
     for num, node in enumerate(nodes):
         ret_indices[node] = num
     return ret_indices
+
 
 def local_gradients(order, dim, size=(0., 1.), distribution='uniform'):
     # gradgrad matrix for set of basis functions
@@ -153,6 +167,7 @@ def local_gradients(order, dim, size=(0., 1.), distribution='uniform'):
         ret_indices[node] = num
     gradients = [gradient(func, symbols) for func in funcs]
     return gradients
+
 
 def local_gradgrad_functions(order, dim, size=(0., 1.), distribution='uniform'):
     sizes = populate_size(dim=dim, size=size)
@@ -181,6 +196,7 @@ def local_funcfunc_matrix(order, dim, size=(0., 1.), distribution='uniform'):
                                             for symbol, size in zip(symbols, sizes)])
     return ret_M
 
+
 def norm_vector(x, y):
     return np.array([x, y]) / np.sqrt(x ** 2 + y ** 2)
 
@@ -191,6 +207,7 @@ def normed_normal(x1, x2, y1, y2):
 
 def normed_colin(x1, x2, y1, y2):
     return norm_vector(x2 - x1, y2 - y1)
+
 
 def gen_borders(dim, size=(0., 1.)):
     # return border nodes in a clockwise order for 2D
@@ -226,7 +243,7 @@ def local_gradfunc_matrix(order, dim, size=(0., 1.), distribution='globatto'):
                 grad_normal = sum([i * j for i, j in zip(normal, grad)])
                 to_integrate = (grad_normal * func).subs(symbols[num % 2], border[num % 2][0])
                 integral = sympy.integrate(to_integrate, (
-                symbols[1 - (num % 2)], min(border[1 - (num % 2)]), max(border[1 - (num % 2)])))
+                    symbols[1 - (num % 2)], min(border[1 - (num % 2)]), max(border[1 - (num % 2)])))
                 result_for_border[numfunc, numgrad] += integral
                 result[numfunc, numgrad] += integral
             borderwise.append(result_for_border)
@@ -236,13 +253,13 @@ def local_gradfunc_matrix(order, dim, size=(0., 1.), distribution='globatto'):
 
 
 def get_href_constraint_matrix(order, inversed=False, distribution='globatto'):
-    glob_func_on_loc_mesh = np.zeros((order+1, order+1))
-    funcs_prim, glob_grid = polynom_factory(dim=1, order=order,size=(0,2), distribution=distribution)
-    funcs, local_grid = polynom_factory(dim=1, order=order,size=(0,1), distribution=distribution)
+    glob_func_on_loc_mesh = np.zeros((order + 1, order + 1))
+    funcs_prim, glob_grid = polynom_factory(dim=1, order=order, size=(0, 2), distribution=distribution)
+    funcs, local_grid = polynom_factory(dim=1, order=order, size=(0, 1), distribution=distribution)
     for num1, i in enumerate(local_grid):
         for num2, prim_f in enumerate(funcs_prim):
-            glob_func_on_loc_mesh[num1, num2] = prim_f.subs({'x_1':i[0]})
-    if(inversed):
+            glob_func_on_loc_mesh[num1, num2] = prim_f.subs({'x_1': i[0]})
+    if (inversed):
         return np.linalg.inv(glob_func_on_loc_mesh)
     else:
         return glob_func_on_loc_mesh

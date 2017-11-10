@@ -23,8 +23,8 @@ class MatrixAssembler2D():
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {
-            #'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
-            'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
+            'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
+            #'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
             #'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/globatto_matrices.h5'
         }
 
@@ -138,6 +138,9 @@ class MatrixAssembler2D():
                 self._ff_matrices[(order, distribution, (sm[1], sm[1]))] = \
                     M_source['mass_matrices/base_M_order_{}'.format(order)][()] * (smm[1] ** 2)
 
+        self._gg_matrices[(5, distribution)] = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/pipka.npz.npy')
+        self._ff_matrices[(5, distribution)] = np.load(
+            '/home/lshtanko/Programming/another-fem-framework/datasources/pipka_mass.npz.npy')
         M_source.close()
 
     def merge_two_cells(self, cell_1, cell_2, matrix='grad'):
@@ -208,9 +211,9 @@ class MatrixAssembler2D():
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
 
-        glob_mass_matrix = csr_matrix((
-            self.assembly_interface.get_ddof_count(),
-            self.assembly_interface.get_ddof_count()))
+        #glob_mass_matrix = csr_matrix((
+        #    self.assembly_interface.get_ddof_count(),
+        #    self.assembly_interface.get_ddof_count()))
 
         gather_evth = []
         for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
@@ -218,11 +221,11 @@ class MatrixAssembler2D():
             if props['cell'].ll_vertex not in future_ignore:
                 peer_merged = csr_matrix(
                     (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
-                peer_mass_merged = csr_matrix(
-                    (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
+        #        peer_mass_merged = csr_matrix(
+        #            (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
 
                 host_local = self._distribute_one_cell(props['cell'])
-                mass_local = self._distribute_mass_one_cell(props['cell'])
+                #mass_local = self._distribute_mass_one_cell(props['cell'])
 
                 # TODO: rewrite to multiple merge
                 host_dofs_to_merge = []
@@ -234,9 +237,9 @@ class MatrixAssembler2D():
 
                 for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
                     peer_merged += self.merge_two_cells(cell_1=adj_cells[0][1], cell_2=adj_cells[1][1])
-                    peer_mass_merged += self.merge_two_cells(cell_1=adj_cells[0][1],
-                                                             cell_2=adj_cells[1][1],
-                                                             matrix='mass')
+                    #peer_mass_merged += self.merge_two_cells(cell_1=adj_cells[0][1],
+                    #                                         cell_2=adj_cells[1][1],
+                    #                                         matrix='mass')
                     tmp_peer = self.stack_wcon_dofs(weak_conns)
                     tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
                         edge=k_edge, cell=props['cell'])
@@ -282,15 +285,15 @@ class MatrixAssembler2D():
                                     peer_merged))
 
                 init_operator = peer_merged + host_local
-                init_mass = peer_mass_merged + mass_local
+                #init_mass = peer_mass_merged + mass_local
 
                 self.half_glob = init_operator * whole_dist
                 glob_matrix += whole_dist.T * init_operator * whole_dist
-                glob_mass_matrix += whole_dist.T * init_mass * whole_dist
+                #glob_mass_matrix += whole_dist.T * init_mass * whole_dist
 
             if verbose:
                 print('\r', num, end='')
         self.assembled = glob_matrix
-        self.assembled_mass = glob_mass_matrix
+       # self.assembled_mass = glob_mass_matrix
 
         return gather_evth
