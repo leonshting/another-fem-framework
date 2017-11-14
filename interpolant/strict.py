@@ -53,7 +53,10 @@ class StrictSolve(VerbosePrinter):
         fl_eqs_list = []
         for mat in eqs_list:
             for idrow in range(mat.shape[0]):
-                fl_eqs_list.append(round_expression(mat[idrow]))
+                if method == 'svd':
+                    fl_eqs_list.append(mat[idrow])
+                else:
+                    fl_eqs_list.append(round_expression(mat[idrow]))
 
         self._verbose_print('Number of equations: {}\n'
                             'Number of degrees of freedom: {}\n'
@@ -67,7 +70,7 @@ class StrictSolve(VerbosePrinter):
             success, self.free_symbols = self._svd_solve(
                 fl_eqs_list, 
                 list(itertools.chain(*self.symbols_for_M)),
-                eps=kwargs.get('options', {'eps': 1e-7}).get('eps', 1e-7))
+                eps=kwargs.get('options', {'eps': 1e-5}).get('eps', 1e-5))
         else:
             success = False
 
@@ -87,7 +90,7 @@ class StrictSolve(VerbosePrinter):
         free_symbols = self.I_lr.free_symbols
         return len(answer) != 0, free_symbols
 
-    def _svd_solve(self, eqs_list, var_list, eps=1e-7):
+    def _svd_solve(self, eqs_list, var_list, eps=1e-5):
         M, rhs = [np.array(i).astype(np.float64) for i in linear_eq_to_matrix(eqs_list, var_list)]
         M_NS = null(M, eps=eps)
         some_solution, resid, rank, sigma = linalg.lstsq(M, rhs)

@@ -8,7 +8,7 @@ from sympy.polys.orthopolys import legendre_poly
 from sympy.polys.rootoftools import RootOf
 
 
-def gauss_lobatto(n, n_digits=10):
+def gauss_lobatto(n, n_digits=20):
     x = Dummy("x")
     p = legendre_poly(n - 1, x, polys=True)
     pd = p.diff(x)
@@ -54,13 +54,13 @@ def gc_points(order, size):
 
 
 def glob_points(order, size):
-    roots_arr = np.array(gauss_lobatto(n=order + 1)[0], dtype=np.float32)
+    roots_arr = np.array(gauss_lobatto(n=order + 1)[0], dtype=np.float64)
     to_mult = (size[1] - size[0]) / 2.
     return np.array(list((roots_arr + 1) * to_mult + size[0]))
 
 
 def glob_weights(order, size=(0, 1)):
-    return (max(size) - min(size)) * np.array(gauss_lobatto(n=order + 1)[1], dtype=np.float32)
+    return (max(size) - min(size)) * np.array(gauss_lobatto(n=order + 1)[1], dtype=np.float64)
 
 
 def gen_nodes(order, dim, size, distribution='uniform'):

@@ -79,8 +79,10 @@ def round_expression(expr, tol=5):
 
 def null(A, eps=1e-6):
     u, s, vh = linalg.svd(A)
+    np.save('sing_val', arr=s)
     padding = max(0,np.shape(A)[1]-np.shape(s)[0])
     null_mask = np.concatenate(((s <= eps), np.ones((padding,),dtype=bool)),axis=0)
+    print(null_mask)
     null_space = compress(null_mask, vh, axis=0)
     return transpose(null_space)
 
