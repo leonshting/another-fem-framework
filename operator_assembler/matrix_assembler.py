@@ -36,6 +36,25 @@ class MatrixAssembler2D():
         #     [-0.04111448,0.07682102,-0.05016152,0.09433045,0.51547025,0.37368352,0.03097077],
         #     [0.07157862,-0.39775608,0.39265603,0.02834773,-0.21919967,0.6452334,0.47913998]])
 
+        self.I_s2b = np.array([[ 0.81754162,  0.43473261, -0.5263626 ,  0.5263626 , -0.43473261,  0.18245838],
+       [ 0.42887393,  0.56763922,  0.08573385, -0.17818385,  0.17044578, -0.07450393],
+       [-0.22878392,  1.10846921,  0.05091138,  0.16763862, -0.17699421,  0.07875892],
+       [ 0.08005767, -0.13884084,  1.31121   , -0.449045  ,  0.33237084, -0.13574767],
+       [-0.06491343,  0.10570322,  0.50879748,  0.70865252, -0.42450822,  0.16626343],
+       [ 0.0625    , -0.194645  ,  0.63215   ,  0.63215   , -0.194645  ,  0.0625    ],
+       [ 0.16626343, -0.42450822,  0.70865252,  0.50879748,  0.10570322, -0.06491343],
+       [-0.13574767,  0.33237084, -0.449045  ,  1.31121   , -0.13884084,  0.08005767],
+       [ 0.07875892, -0.17699421,  0.16763862,  0.05091138,  1.10846921, -0.22878392],
+       [-0.07450393,  0.17044578, -0.17818385,  0.08573385,  0.56763922,  0.42887393],
+       [ 0.18245838, -0.43473261,  0.5263626 , -0.5263626 ,  0.43473261,  0.81754162]])
+
+        self.I_b2s = np.array([[ 0.40878111,  1.21738669, -0.95206492,  0.33314864, -0.18425171,  0.0625    ,  0.47194171, -0.56491364,  0.32774492, -0.21148669,  0.09121889],
+       [ 0.0382833 ,  0.28381791,  0.81252745, -0.10177947,  0.05284786, -0.034285  , -0.21225286,  0.24363947, -0.12974245,  0.08522709, -0.0382833 ],
+       [-0.03162156,  0.02924139,  0.02546341,  0.65560948,  0.17354209,  0.075955  ,  0.24167791, -0.22452448,  0.08381159, -0.06077139,  0.03162156],
+       [ 0.03162156, -0.06077139,  0.08381159, -0.22452448,  0.24167791,  0.075955  ,  0.17354209,  0.65560948,  0.02546341,  0.02924139, -0.03162156],
+       [-0.0382833 ,  0.08522709, -0.12974245,  0.24363947, -0.21225286, -0.034285  ,  0.05284786, -0.10177947,  0.81252745,  0.28381791,  0.0382833 ],
+       [ 0.09121889, -0.21148669,  0.32774492, -0.56491364,  0.47194171,  0.0625    , -0.18425171,  0.33314864, -0.95206492,  1.21738669,  0.40878111]])
+
         #self.I_s2b = np.array(
         #    [[ 0.95827995,  0.30970766, -0.41114484,  0.14315723],
         #     [ 0.25809336,  0.74736704,  0.15364203, -0.15910243],
@@ -74,18 +93,18 @@ class MatrixAssembler2D():
         #    [0.16613, -0.18066, -0.33455, 0.87222, 0.47685]]
         #)
 
-        self.I_b2s = np.array([[ 0.58752961,  0.73341258, -0.20163508, -0.125     , -0.18463492,  0.27786242, -0.08752961],
-       [-0.03914037,  0.45152847,  0.44695071,  0.125     ,  0.13029929, -0.15377847,  0.03914037],
-       [ 0.03914037, -0.15377847,  0.13029929,  0.125     ,  0.44695071,  0.45152847, -0.03914037],
-       [-0.08752961,  0.27786242, -0.18463492, -0.125     , -0.20163508,  0.73341258,  0.58752961]])
+       # self.I_b2s = np.array([[ 0.58752961,  0.73341258, -0.20163508, -0.125     , -0.18463492,  0.27786242, -0.08752961],
+       #[-0.03914037,  0.45152847,  0.44695071,  0.125     ,  0.13029929, -0.15377847,  0.03914037],
+       #[ 0.03914037, -0.15377847,  0.13029929,  0.125     ,  0.44695071,  0.45152847, -0.03914037],
+       #[-0.08752961,  0.27786242, -0.18463492, -0.125     , -0.20163508,  0.73341258,  0.58752961]])
 
-        self.I_s2b = np.array([[ 1.17504922, -0.39140656,  0.39140656, -0.17504922],
-       [ 0.29337173,  0.90301192, -0.30752192,  0.11113827],
-       [-0.08065374,  0.8938717 ,  0.2606383 , -0.07385626],
-       [-0.125     ,  0.625     ,  0.625     , -0.125     ],
-       [-0.07385626,  0.2606383 ,  0.8938717 , -0.08065374],
-       [ 0.11113827, -0.30752192,  0.90301192,  0.29337173],
-       [-0.17504922,  0.39140656, -0.39140656,  1.17504922]])
+        #self.I_s2b = np.array([[ 1.17504922, -0.39140656,  0.39140656, -0.17504922],
+      # [ 0.29337173,  0.90301192, -0.30752192,  0.11113827],
+      # [-0.08065374,  0.8938717 ,  0.2606383 , -0.07385626],
+      # [-0.125     ,  0.625     ,  0.625     , -0.125     ],
+      # [-0.07385626,  0.2606383 ,  0.8938717 , -0.08065374],
+      # [ 0.11113827, -0.30752192,  0.90301192,  0.29337173],
+      # [-0.17504922,  0.39140656, -0.39140656,  1.17504922]])
 
 
         #self.I_b2s = np.array([[ 0.57288245,  0.59966694,  0.0802658 , -0.27140653,  0.01859134],
@@ -205,6 +224,10 @@ class MatrixAssembler2D():
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
 
+        self.half_glob = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
         #glob_mass_matrix = csr_matrix((
         #    self.assembly_interface.get_ddof_count(),
         #    self.assembly_interface.get_ddof_count()))
@@ -213,10 +236,12 @@ class MatrixAssembler2D():
         for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
             #bad way probably refactor
             if props['cell'].ll_vertex not in future_ignore:
+
                 peer_merged = csr_matrix(
                     (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
         #        peer_mass_merged = csr_matrix(
         #            (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
+
 
                 host_local = self._distribute_one_cell(props['cell'])
                 #mass_local = self._distribute_mass_one_cell(props['cell'])
@@ -226,7 +251,7 @@ class MatrixAssembler2D():
                 peer_dofs_to_merge = []
 
                 local_dist_merge = []
-
+                local_dist_merge2 = []
                 host_merge_d_cnt = Counter()
 
                 for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
@@ -248,6 +273,15 @@ class MatrixAssembler2D():
                         0.5 * self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
                     ))
 
+                    local_dist_merge2.append((
+                        self._distribute_eye(tmp_peer) +
+                        self._distribute_eye(tmp_host) +
+                        self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) +
+                        self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
+                    ))
+
+
+
                 host_dofs_to_merge_unique = set([i for i in itertools.chain(*host_dofs_to_merge)])
                 peer_dofs_to_merge_unique = set([i for i in itertools.chain(*peer_dofs_to_merge)])
 
@@ -267,9 +301,15 @@ class MatrixAssembler2D():
                 whole_dist = self._distribute_eye(host_dofs_independent) + \
                              self._distribute_eye(peer_dofs_independent)
 
+                whole_dist2 = self._distribute_eye(host_dofs_independent) + \
+                             self._distribute_eye(peer_dofs_independent)
+
                 print(peer_dofs_independent, host_dofs_independent, host_dofs_to_merge, peer_dofs_to_merge)
                 for dist in local_dist_merge:
                     whole_dist += dist
+
+                for dist in local_dist_merge2:
+                    whole_dist2 += dist
 
                 gather_evth.append((local_dist_merge,
                                     whole_dist,
@@ -281,7 +321,7 @@ class MatrixAssembler2D():
                 init_operator = peer_merged + host_local
                 #init_mass = peer_mass_merged + mass_local
 
-                self.half_glob = init_operator * whole_dist
+                self.half_glob += init_operator * whole_dist
                 glob_matrix += whole_dist.T * init_operator * whole_dist
                 #glob_mass_matrix += whole_dist.T * init_mass * whole_dist
 
