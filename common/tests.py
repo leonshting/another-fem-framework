@@ -1,5 +1,6 @@
 def partial_diff_test(pointnum, point, matrix, pointdict, mass_matrix=None,
-                      multiple_dofs_on_point=True):
+                      multiple_dofs_on_point=True, scale_factor=1):
+    zero_der = 0
     x_der = 0
     xx_der = 0
     yy_der = 0
@@ -11,6 +12,7 @@ def partial_diff_test(pointnum, point, matrix, pointdict, mass_matrix=None,
             dx = point[0] - k[0]
             dy = point[1] - k[1]
 
+            zero_der += matrix[pointnum, v]
             x_der += dx * matrix[pointnum, v]
             xx_der += matrix[pointnum, v] * dx ** 2 / 2
             y_der += dy * matrix[pointnum, v]
@@ -21,7 +23,7 @@ def partial_diff_test(pointnum, point, matrix, pointdict, mass_matrix=None,
             for v in vs:
                 dx = point[0] - k[0]
                 dy = point[1] - k[1]
-
+                zero_der += matrix[pointnum, v]
                 x_der += dx * matrix[pointnum, v]
                 xx_der += matrix[pointnum, v] * dx ** 2 / 2
                 y_der += dy * matrix[pointnum, v]
@@ -31,8 +33,16 @@ def partial_diff_test(pointnum, point, matrix, pointdict, mass_matrix=None,
     if mass_matrix is not None:
         print('Mass coef: {}'.format(mass_matrix[pointnum].sum()))
 
-    print('X derivative: {}'.format(x_der))
-    print('Y derivative: {}'.format(y_der))
-    print('XX derivative: {}'.format(xx_der))
-    print('YY derivative: {}'.format(yy_der))
-    print('XY_derivative: {}'.format(xy_der), end='\n\n')
+    print('zero derivative: {}'.format(zero_der * scale_factor))
+    print('X derivative: {}'.format(x_der * scale_factor))
+    print('Y derivative: {}'.format(y_der * scale_factor))
+    print('XX derivative: {}'.format(xx_der * scale_factor))
+    print('YY derivative: {}'.format(yy_der * scale_factor))
+    print('XY_derivative: {}'.format(xy_der * scale_factor), end='\n\n')
+    return {
+        'zero': zero_der * scale_factor,
+        'XX': xx_der * scale_factor,
+        'YY': yy_der * scale_factor,
+        'X': x_der * scale_factor,
+        'Y': y_der * scale_factor,
+            }

@@ -23,15 +23,18 @@ class MatrixAssembler2D():
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {
-            #'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/globatto_matrices.h5',
-            #'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/globatto_matrices.h5'
-            'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/1_10_globatto_integrated.h5'
+            'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/1_10_globatto_integrated.h5',
+            #'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/1_10_globatto_integrated.h5'
+            #'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/1_10_globatto_integrated.h5'
         }
 
         self._get_local_matrices_from_file('lobatto')
 
-        self.I_s2b = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_lr.npy')
-        self.I_b2s = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_rl.npy')
+        #self.I_s2b = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_lr.npy')
+        #self.I_b2s = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_rl.npy')
+
+        self.I_s2b = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/4_lr.npy')
+        self.I_b2s = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/4_rl.npy')
 
     def _get_local_ff_matrix(self, distribution, order, cell, diagonal=True):
         if self._ff_matrices.get((order, distribution, cell.size)) is None:
@@ -45,7 +48,7 @@ class MatrixAssembler2D():
         else:
             return self._ff_matrices[(order, distribution, (0,cell.size[0]))]
 
-    def _get_local_gg_matrix(self, distribution, order):
+    def _get_local_gg_matrix(self, distribution, order, cell: Cell2D):
         #TODO: DANGER in zero_index
         if self._gg_matrices.get((order, distribution)) is None:
             self._gg_matrices[(order, distribution)] = local_gradgrad_matrix(dim=2,
@@ -81,8 +84,8 @@ class MatrixAssembler2D():
         dist_2 = distributed_eye(pairtuples=pairtuple_2,
                                  shape=(len(pairtuple_2), self.assembly_interface.get_ddof_count())).tocoo()
         if matrix == 'grad':
-            glob += dist_1.T * csr_matrix(self._get_local_gg_matrix(distribution=props_1[1], order=props_1[0])) * dist_1
-            glob += dist_2.T * csr_matrix(self._get_local_gg_matrix(distribution=props_2[1], order=props_2[0])) * dist_2
+            glob += dist_1.T * csr_matrix(self._get_local_gg_matrix(distribution=props_1[1], order=props_1[0], cell=cell_1)) * dist_1
+            glob += dist_2.T * csr_matrix(self._get_local_gg_matrix(distribution=props_2[1], order=props_2[0], cell=cell_2)) * dist_2
             return glob
         elif matrix == 'mass':
             glob += dist_1.T * csr_matrix(self._get_local_ff_matrix(distribution=props_1[1], order=props_1[0], cell=cell_1)) * dist_1
@@ -93,7 +96,7 @@ class MatrixAssembler2D():
         pairtuple = self.assembly_interface.allocator.get_cell_list_of_ddofs(cell=cell)
         props = self.assembly_interface.allocator.get_cell_props(cell)
         dist_1 = distributed_eye_easy(pairtuples=pairtuple, axis2shape=self.assembly_interface.get_ddof_count()).tocoo()
-        glob = dist_1.T * csr_matrix(self._get_local_gg_matrix(distribution=props[1], order=props[0])) * dist_1
+        glob = dist_1.T * csr_matrix(self._get_local_gg_matrix(distribution=props[1], order=props[0], cell=cell)) * dist_1
         return glob.tocsr()
 
     def _distribute_mass_one_cell(self, cell: Cell2D):
