@@ -1,7 +1,7 @@
 from scipy import optimize
 from sympy import lambdify, Matrix
 
-from .helpers import trace_on_points, round_expression
+from .helpers import trace_on_points
 from .verbose_printer import VerbosePrinter
 import numpy as np
 
@@ -58,6 +58,9 @@ class OptSolve(VerbosePrinter):
             finally:
                 self.I_rl_subbed = self.I_rl.subs({i: j for i, j in zip(self.free_symbols, self.opt_fit_result)})
                 self.I_lr_subbed = self.I_lr.subs({i: j for i, j in zip(self.free_symbols, self.opt_fit_result)})
+
+                self.I_rl_subbed_symm = 0.5 * (self.I_rl_subbed + self.I_rl_subbed[::-1, ::-1])
+                self.I_lr_subbed_symm = 0.5 * (self.I_lr_subbed + self.I_lr_subbed[::-1, ::-1])
         else:
             raise Exception('Cannot restart now, state is {}'.format(self.state))
 
@@ -97,11 +100,20 @@ class OptSolve(VerbosePrinter):
             self.I_rl_subbed = self.I_rl.subs({i: j for i, j in zip(self.free_symbols, self.opt_fit_result)})
             self.I_lr_subbed = self.I_lr.subs({i: j for i, j in zip(self.free_symbols, self.opt_fit_result)})
 
+            self.I_rl_subbed_symm = 0.5 * (self.I_rl_subbed + self.I_rl_subbed[::-1, ::-1])
+            self.I_lr_subbed_symm = 0.5 * (self.I_lr_subbed + self.I_lr_subbed[::-1, ::-1])
+
     def _fit(self, constraints, trial_functions, initial_guess, minimize_options, **kwargs):
         f_lrrl = lambda x: 1 - max(
-            np.abs(np.linalg.eigvalsh(lambdify(args=self.free_symbols, expr=self.I_lr * self.I_rl)(*x))))
+            np.abs(np.linalg.eigvals(
+                lambdify(args=self.free_symbols,
+                         expr=0.25 * (self.I_lr + self.I_lr[::-1, ::-1]) * (self.I_rl + self.I_rl[::-1, ::-1]),
+                         modules='numpy')(*x))))
         f_rllr = lambda x: 1 - max(
-            np.abs(np.linalg.eigvalsh(lambdify(args=self.free_symbols, expr=self.I_rl * self.I_lr)(*x))))
+            np.abs(np.linalg.eigvals(
+                lambdify(args=self.free_symbols,
+                         expr=0.25 * (self.I_rl + self.I_rl[::-1, ::-1]) * (self.I_lr + self.I_lr[::-1, ::-1]),
+                         modules='numpy')(*x))))
 
         gll_points_traces = [
             [trace_on_points(points=points_sq, function=f) for points_sq in self.points] for
@@ -115,11 +127,11 @@ class OptSolve(VerbosePrinter):
         objs_l = [(eps_l.T * self.W_l * eps_l)[0, 0] for eps_l, eps_r in zip(epss_l, epss_r)]
         objs_r = [(eps_r.T * self.W_r * eps_r)[0, 0] for eps_l, eps_r in zip(epss_l, epss_r)]
 
-        objective = sum([round_expression(obj_r + obj_l) for obj_r, obj_l in zip(objs_l, objs_r)])
+        objective = sum([obj_r + obj_l for obj_r, obj_l in zip(objs_l, objs_r)])
 
         self._verbose_print('Optimization started')
 
-        f_obj = lambda x: lambdify(self.free_symbols, objective)(*x)
+        f_obj = lambda x: lambdify(self.free_symbols, objective, 'numpy')(*x)
         self._f_objective = f_obj
 
         init = initial_guess

@@ -15,7 +15,7 @@ class InterfaceDofAllocator2D:
         self.num_layers = len(self.layers)
         self.dim = 2
 
-        self._default_order = kwargs.get('default_order', 5)
+        self._default_order = kwargs.get('default_order', 3)
         self._default_dist = kwargs.get('default_dist', 'lobatto')
 
     def query_adj_cells_by_edge(self, cell: Cell2D, edge: edge_2D_type, num_layer: int, size_rel_filter=None):
@@ -60,7 +60,7 @@ class InterfaceDofAllocator2D:
     def get_dist_for_cell(self, cell: Cell2D):
         return self._default_dist
 
-    def iterate_cells_fstb(self, yield_layer_num=True) -> Generator[cell_yield_type_2D, None, None]:
+    def iterate_cells_fstb(self, yield_layer_num=True) -> cell_yield_type_2D:
         """iterates cells layer by layer from small to big"""
         for layer in self.layers:
             for cell in layer.iterate_cells():
@@ -70,7 +70,7 @@ class InterfaceDofAllocator2D:
                 ret_list.append(cell)
                 yield tuple(ret_list)
 
-    def iterate_cells_fbts(self, yield_layer_num=True) -> Generator[cell_yield_type_2D, None, None]:
+    def iterate_cells_fbts(self, yield_layer_num=True) -> cell_yield_type_2D:
         """iterates cells layer by layer from small to big"""
         for layer in self.layers[::-1]:
             for cell in layer.iterate_cells():
