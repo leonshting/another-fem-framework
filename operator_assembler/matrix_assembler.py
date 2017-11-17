@@ -33,8 +33,8 @@ class MatrixAssembler2D():
         #self.I_s2b = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_lr.npy')
         #self.I_b2s = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_rl.npy')
 
-        self.I_s2b = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/4_lr.npy')
-        self.I_b2s = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/4_rl.npy')
+        self.I_s2b = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_lr.npy')
+        self.I_b2s = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_rl.npy')
 
     def _get_local_ff_matrix(self, distribution, order, cell, diagonal=True):
         if self._ff_matrices.get((order, distribution, cell.size)) is None:
@@ -46,7 +46,7 @@ class MatrixAssembler2D():
         if diagonal:
             return np.diag(self._ff_matrices[(order, distribution, cell.size)].sum(axis=1))
         else:
-            return self._ff_matrices[(order, distribution, (0,cell.size[0]))]
+            return self._ff_matrices[(order, distribution, cell.size)]
 
     def _get_local_gg_matrix(self, distribution, order, cell: Cell2D):
         #TODO: DANGER in zero_index
@@ -155,8 +155,8 @@ class MatrixAssembler2D():
 
                 peer_merged = csr_matrix(
                     (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
-        #        peer_mass_merged = csr_matrix(
-        #            (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
+                #peer_mass_merged = csr_matrix(
+                #    (self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
 
 
                 host_local = self._distribute_one_cell(props['cell'])
@@ -225,11 +225,11 @@ class MatrixAssembler2D():
                 #init_mass = peer_mass_merged + mass_local
 
                 self.half_glob += init_operator * whole_dist
-                glob_matrix += whole_dist.T * init_operator * whole_dist
+        for gather in gather_evth:
+
+            glob_matrix += gather[1].T * self.half_glob
                 #glob_mass_matrix += whole_dist.T * init_mass * whole_dist
 
-            if verbose:
-                print('\r', num, end='')
         self.assembled = glob_matrix
        # self.assembled_mass = glob_mass_matrix
 

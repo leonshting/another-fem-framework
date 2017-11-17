@@ -119,9 +119,9 @@ class OptSolve(VerbosePrinter):
             [trace_on_points(points=points_sq, function=f) for points_sq in self.points] for
             f in trial_functions]
 
-        epss_l = [self.I_rl * Matrix(gll_points_trace[1]) - Matrix(gll_points_trace[0]) for gll_points_trace in
+        epss_l = [0.5 * (self.I_rl + self.I_rl[::-1, ::-1]) * Matrix(gll_points_trace[1]) - Matrix(gll_points_trace[0]) for gll_points_trace in
                   gll_points_traces]
-        epss_r = [self.I_lr * Matrix(gll_points_trace[0]) - Matrix(gll_points_trace[1]) for gll_points_trace in
+        epss_r = [0.5 * (self.I_lr + self.I_lr[::-1, ::-1]) * Matrix(gll_points_trace[0]) - Matrix(gll_points_trace[1]) for gll_points_trace in
                   gll_points_traces]
 
         objs_l = [(eps_l.T * self.W_l * eps_l)[0, 0] for eps_l, eps_r in zip(epss_l, epss_r)]
