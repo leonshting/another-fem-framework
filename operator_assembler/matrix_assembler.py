@@ -4,12 +4,16 @@ import numpy as np
 from scipy.sparse import csr_matrix, coo_matrix
 import itertools
 from collections import Counter
+from sklearn.preprocessing import normalize
+
 
 from common.helpers import distributed_eye_easy, distributed_eye
 from grid.cell import Cell2D
 from operator_assembler.assembly_interface import AssemblyInterface2D
 from grid.grid_domain import GridDomain
 from common.polynom_factory import local_gradgrad_matrix, local_funcfunc_matrix
+
+
 
 from common.visual import plot_sparse_pattern
 
@@ -35,6 +39,14 @@ class MatrixAssembler2D():
 
         self.I_s2b = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_lr.npy')
         self.I_b2s = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_rl.npy')
+
+        self.dist = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
+        self.unmerged = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
 
     def _get_local_ff_matrix(self, distribution, order, cell, diagonal=True):
         if self._ff_matrices.get((order, distribution, cell.size)) is None:
@@ -134,6 +146,59 @@ class MatrixAssembler2D():
             last = dofs_list[-1]
         return dofs_list
 
+    def assemble_dist(self, verbose=True):
+        for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
+            local_dist_merge = []
+
+            host_dofs_to_merge = []
+            peer_dofs_to_merge = []
+
+            for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
+
+                tmp_peer = self.stack_wcon_dofs(weak_conns)
+                tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
+                    edge=k_edge, cell=props['cell'])
+
+                peer_dofs_to_merge.append(tmp_peer)
+                host_dofs_to_merge.append(tmp_host)
+
+                local_dist_merge.append((
+                    0.5 * self._distribute_eye(tmp_peer) +
+                    0.5 * self._distribute_eye(tmp_host) +
+                    0.5 * self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) +
+                    0.5 * self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
+                ))
+
+            adj_cells_entities = [j[1] for j in list(itertools.chain(*[i for i in props['adj_cells'].values()]))]
+
+            host_dofs_to_merge_unique = set([i for i in itertools.chain(*host_dofs_to_merge)])
+            peer_dofs_to_merge_unique = set([i for i in itertools.chain(*peer_dofs_to_merge)])
+
+            host_dofs_independent = set(self.assembly_interface.allocator.
+                                    get_cell_list_of_ddofs_global(props['cell'])) - \
+                                    host_dofs_to_merge_unique
+
+            peer_dofs_independent = set(list(itertools.chain(
+                *[self.assembly_interface.allocator.get_cell_list_of_ddofs_global(cell)
+                for cell in adj_cells_entities]))) - peer_dofs_to_merge_unique
+
+
+            whole_dist = self._distribute_eye(host_dofs_independent) + \
+                         self._distribute_eye(peer_dofs_independent)
+
+            for dist in local_dist_merge:
+                whole_dist += dist
+            self.dist += whole_dist
+        ##TODO correct nomralization
+        self.dist = csr_matrix(self.dist / self.dist.sum(axis=1))
+
+
+    def assemble_glob_local(self, verbose=True):
+        for layer_num, cell in \
+           self.assembly_interface.allocator.grid_interface.iterate_cells_fbts(yield_layer_num=True):
+            self.unmerged += self._distribute_one_cell(cell)
+
+
     def assemble(self, verbose=True):
         future_ignore = set()
         glob_matrix = csr_matrix((
@@ -144,6 +209,13 @@ class MatrixAssembler2D():
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
 
+        self.unmerged = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
+        self.dist = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
         #glob_mass_matrix = csr_matrix((
         #    self.assembly_interface.get_ddof_count(),
         #    self.assembly_interface.get_ddof_count()))
@@ -221,16 +293,35 @@ class MatrixAssembler2D():
                                     host_local,
                                     peer_merged))
 
+                self.unmerged += peer_merged + host_local
+                nonzeros_dist = self.dist.nonzero()
+                nonzeros_wd = whole_dist.nonzero()
+
+                set_nz_dist = set([(i,j) for i,j in zip(*nonzeros_dist)])
+                set_nz_wd = set([(i, j) for i, j in zip(*nonzeros_wd)])
+
+                intersecting_rows = set(nonzeros_dist[0]).intersection(nonzeros_wd[0])
+                inters = set_nz_dist.intersection(set_nz_wd)
+
+
                 init_operator = peer_merged + host_local
                 #init_mass = peer_mass_merged + mass_local
 
                 self.half_glob += init_operator * whole_dist
+
+                for int_row in intersecting_rows:
+                    self.dist[int_row] /=2
+                    whole_dist[int_row] /= 2
+                self.dist += whole_dist
+
         for gather in gather_evth:
 
             glob_matrix += gather[1].T * self.half_glob
                 #glob_mass_matrix += whole_dist.T * init_mass * whole_dist
 
         self.assembled = glob_matrix
+        self._ass = self.dist.T * self.unmerged * self.dist
+        self._half = self.unmerged * self.dist
        # self.assembled_mass = glob_mass_matrix
 
         return gather_evth
