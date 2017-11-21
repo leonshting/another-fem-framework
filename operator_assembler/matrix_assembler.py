@@ -146,18 +146,52 @@ class MatrixAssembler2D():
             last = dofs_list[-1]
         return dofs_list
 
+    def csr_matrix_from_dict(self, d, f):
+        vals = [f(v) for v in d.values()]
+        ind0 = [k[0] for k in d.keys()]
+        ind1 = [k[1] for k in d.keys()]
+        cMat = coo_matrix((vals, (ind0, ind1)), shape=(self.assembly_interface.get_ddof_count(), self.assembly_interface.get_ddof_count()))
+        return cMat.tocsr()
+
+    def normalize_m_by_m(self, matrix1, matrix2):
+        return matrix1.multiply(matrix2)
+
+    def normalize_m_by_dict(self, matrix, d, renorm=True):
+        tmp = self.normalize_m_by_m(matrix, self.csr_matrix_from_dict(d, lambda x: 1/x))
+        return tmp
+
+
     def assemble_dist(self, verbose=True):
+
+        future_ignore = set()
+        self.dofs_to_merge_contribs = Counter()
+        self.straight_contribs = Counter()
+
+        dist_straight = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
+        dist_interp = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
         for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
+           if props['cell'].ll_vertex not in future_ignore:
+
             local_dist_merge = []
 
             host_dofs_to_merge = []
             peer_dofs_to_merge = []
+
 
             for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
 
                 tmp_peer = self.stack_wcon_dofs(weak_conns)
                 tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
                     edge=k_edge, cell=props['cell'])
+
+                tmp_contribs = [[(i,j), (j,i)] for i,j in itertools.product(tmp_peer, tmp_host)] + \
+                               [[(i,i)] for i in tmp_peer] + [[(j,j)] for j in tmp_host]
 
                 peer_dofs_to_merge.append(tmp_peer)
                 host_dofs_to_merge.append(tmp_host)
@@ -169,7 +203,12 @@ class MatrixAssembler2D():
                     0.5 * self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
                 ))
 
+                self.dofs_to_merge_contribs.update(Counter([i for i in itertools.chain(*tmp_contribs)]))
+
+
             adj_cells_entities = [j[1] for j in list(itertools.chain(*[i for i in props['adj_cells'].values()]))]
+
+            future_ignore.update([i.ll_vertex for i in adj_cells_entities])
 
             host_dofs_to_merge_unique = set([i for i in itertools.chain(*host_dofs_to_merge)])
             peer_dofs_to_merge_unique = set([i for i in itertools.chain(*peer_dofs_to_merge)])
@@ -182,14 +221,30 @@ class MatrixAssembler2D():
                 *[self.assembly_interface.allocator.get_cell_list_of_ddofs_global(cell)
                 for cell in adj_cells_entities]))) - peer_dofs_to_merge_unique
 
+            self.straight_contribs.update(Counter([(i,i) for i in peer_dofs_independent]))
+            self.straight_contribs.update(Counter([(i,i) for i in host_dofs_independent]))
 
             whole_dist = self._distribute_eye(host_dofs_independent) + \
                          self._distribute_eye(peer_dofs_independent)
 
+            dist_straight += self._distribute_eye(host_dofs_independent) + \
+                             self._distribute_eye(peer_dofs_independent)
+
+
             for dist in local_dist_merge:
                 whole_dist += dist
+                dist_interp += dist
             self.dist += whole_dist
         ##TODO correct nomralization
+
+        self.interp = dist_interp
+        self.straight = dist_straight
+
+        self.dist_alt = self.normalize_m_by_dict(self.interp, self.dofs_to_merge_contribs) + \
+                        self.normalize_m_by_dict(self.straight, self.straight_contribs)
+
+        #self.dist_alt = csr_matrix(self.dist_alt / self.dist_alt.sum(axis=1))
+
         self.dist = csr_matrix(self.dist / self.dist.sum(axis=1))
 
 
