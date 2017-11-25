@@ -12,7 +12,7 @@ import numpy as np
 
 from common import visual
 
-data_start = (16, 20)
+data_start = (64, 64)
 data_shape = (64, 64)
 data_end = tuple([i+j for i,j in zip(data_start, data_shape)])
 
@@ -28,6 +28,7 @@ gm.draw_grid()
 
 ma = Nto1Allocator2D(grid_interface=ifma)
 ma._make_ddof_index()
+ma._merge_ddof_in_index()
 grid_domain.make_pointwise_index(ma)
 
 sine_test = grid_domain.vectorize_function(lambda x,y: np.sin(x+y))
@@ -38,7 +39,7 @@ MA.assemble()
 product = grid_domain.devectorize_vector(MA.assembled * sine_test)
 init = grid_domain.devectorize_function(lambda x,y: np.sin(x+y))
 
-MA.assembled[0]
+#MA.assembled[0]
 
 #rel = {}
 #for (kp, vp), (ki, vi) in zip(product.items(), init.items()):
