@@ -160,7 +160,6 @@ class MatrixAssembler2D():
         tmp = self.normalize_m_by_m(matrix, self.csr_matrix_from_dict(d, lambda x: 1/x))
         return tmp
 
-
     def assemble_dist(self, verbose=True):
 
         future_ignore = set()

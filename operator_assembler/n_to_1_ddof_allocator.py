@@ -19,24 +19,27 @@ class Nto1Allocator2D(BaseAllocator2D):
                 self._connect_edges(host_edge=edge, peer=adj_edge_cells, host_cell=cell, stitching_mode=mode)
             self._allocate_interior_ddofs(host_cell=cell)
 
+    # TODO: convenience function to construct endpoint index
+
     def _merge_ddof_in_index(self):
         sizes = {}
         vertex_dofs = defaultdict(list)
 
         for (ll_vertex, vertex), (local_dof, global_dof) in self._vertex_ddof_index.items():
             sizes[ll_vertex] = max(sizes.get(ll_vertex, 0), max([abs(i-j) for i,j in zip(ll_vertex, vertex)]))
-            vertex_dofs[vertex].append((ll_vertex, local_dof, global_dof))
+            vertex_dofs[vertex].append((ll_vertex, global_dof))
+        self._conjugate_vertex_index = vertex_dofs
         for vertex, list_dofs_props in vertex_dofs.items():
             ll_vertices = defaultdict(list)
             unique_dofs = {}
-            for ll_vertex, local_dof, global_dof in list_dofs_props:
+            for ll_vertex, global_dof in list_dofs_props:
                 ll_vertices[sizes[ll_vertex]].append(ll_vertex)
                 unique_dofs[sizes[ll_vertex]] = (ll_vertex, global_dof)
             for size, ll_vertices in ll_vertices.items():
                 for ll_vertex in ll_vertices:
                     self._vertex_ddof_index[(ll_vertex, vertex)] = (
                         self._vertex_ddof_index[(ll_vertex, vertex)][0],
-                        unique_dofs[size]
+                        unique_dofs[size][1]
                     )
 
 

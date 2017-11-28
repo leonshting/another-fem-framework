@@ -19,6 +19,9 @@ class BaseAllocator2D:
         self._weak_edge_connections = {}
         self._weak_edge_connections_props = {}
 
+        ##conjugate index for vertices - thing to get dofs and cells that are/have vertex by vertex
+        self._conjugate_vertex_index = {}
+
         self._ddof_cnt = 0
 
     def _get_fe_cell(self, size, order, dist):
