@@ -1,4 +1,7 @@
 # coding-utf8
+from collections import defaultdict
+from typing import List
+
 import h5py
 import numpy as np
 from scipy.sparse import csr_matrix, coo_matrix
@@ -13,9 +16,6 @@ from operator_assembler.assembly_interface import AssemblyInterface2D
 from grid.grid_domain import GridDomain
 from common.polynom_factory import local_gradgrad_matrix, local_funcfunc_matrix
 
-
-
-from common.visual import plot_sparse_pattern
 
 
 class MatrixAssembler2D():
@@ -45,6 +45,14 @@ class MatrixAssembler2D():
             self.assembly_interface.get_ddof_count()))
 
         self.unmerged = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
+        self.straight_dist = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
+        self.whole_dist = csr_matrix((
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
 
@@ -134,6 +142,29 @@ class MatrixAssembler2D():
         return dist.T * csr_matrix(np.eye(len(dofs))) * dist
 
     @staticmethod
+    def filter_collaboratively(list1: List, list2: List, list1_index=None, list2_index=None):
+        def _get_value(elem, ind):
+            if ind is None:
+                return elem
+            else:
+                return elem[ind]
+
+        list1_vals = [_get_value(elem, list1_index) for elem in list1]
+        list2_vals = [_get_value(elem, list2_index) for elem in list2]
+
+        list1_vals_cp = list(list1_vals)
+
+        for element1 in list1_vals_cp:
+            if element1 in list2_vals:
+
+                list1.remove(list1[list1_vals.index(element1)])
+                list2.remove(list2[list2_vals.index(element1)])
+
+                list1_vals.remove(element1)
+                list2_vals.remove(element1)
+        return list1, list2
+
+    @staticmethod
     def _order_edges(weak_conns):
         return sorted(weak_conns, key=lambda x: x[0][1])
 
@@ -162,26 +193,9 @@ class MatrixAssembler2D():
 
     def assemble_dist(self, verbose=True):
 
-        future_ignore = set()
-        self.dofs_to_merge_contribs = Counter()
-        self.straight_contribs = Counter()
-
-        dist_straight = csr_matrix((
-            self.assembly_interface.get_ddof_count(),
-            self.assembly_interface.get_ddof_count()))
-
-        dist_interp = csr_matrix((
-            self.assembly_interface.get_ddof_count(),
-            self.assembly_interface.get_ddof_count()))
+        outer_contribs_to_vertex_dofs = defaultdict(list)
 
         for num, props in enumerate(self.assembly_interface.iterate_ddofs_and_wconn()):
-           if props['cell'].ll_vertex not in future_ignore:
-
-            local_dist_merge = []
-
-            host_dofs_to_merge = []
-            peer_dofs_to_merge = []
-
 
             for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
 
@@ -189,68 +203,72 @@ class MatrixAssembler2D():
                 tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
                     edge=k_edge, cell=props['cell'])
 
-                tmp_contribs = [[(i,j), (j,i)] for i,j in itertools.product(tmp_peer, tmp_host)] + \
-                               [[(i,i)] for i in tmp_peer] + [[(j,j)] for j in tmp_host]
+                vertex_peer_dofs = [tmp_peer[0], tmp_peer[-1]]
+                vertex_host_dofs = [tmp_host[0], tmp_host[-1]]
 
-                peer_dofs_to_merge.append(tmp_peer)
-                host_dofs_to_merge.append(tmp_host)
+                # doing the same thing for peer-host interpolation and for host-peer but these connections has a bit different data sturcture
+                # TODO: probably condense to nested loops
+                for num, vertex_dofs in enumerate([vertex_peer_dofs, vertex_host_dofs]):
+                    for d in vertex_dofs:
+                        cells = [props['cell']] if num == 0 else [i[1] for i in adj_cells]
 
-                local_dist_merge.append((
-                    0.5 * self._distribute_eye(tmp_peer) +
-                    0.5 * self._distribute_eye(tmp_host) +
-                    0.5 * self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) +
-                    0.5 * self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
-                ))
+                        vertex = self.assembly_interface.get_vertex_by_dof_id(d)
+                        possibly_contributing = self.assembly_interface.get_ll_vertices_by_vertex(vertex)
+                        adj_cells_ll_vertices = set(i.ll_vertex for i in cells)
+                        possibly_contributing_ll_vertices = set(i[0] for i in possibly_contributing)
 
-                self.dofs_to_merge_contribs.update(Counter([i for i in itertools.chain(*tmp_contribs)]))
+                        contributing_ll_vertex = possibly_contributing_ll_vertices.intersection(adj_cells_ll_vertices)
+                        outer_contribs_to_vertex_dofs[d].extend(contributing_ll_vertex)
+
+                        #possibly do some separation of which dofs contributed from what cell
+
+                self.dist += self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) + \
+                             self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
+
+        for dof, contributing_ll_vertices in outer_contribs_to_vertex_dofs.items():
+            focused_vertex = self.assembly_interface.get_vertex_by_dof_id(dof_id=dof)
+            ground_truth_filtered = [i for i in self.assembly_interface.get_ll_vertices_by_vertex(focused_vertex)\
+                                     if i[1] != dof]
+            gt_cf, c_ll_v_cf = self.filter_collaboratively(
+                ground_truth_filtered,
+                contributing_ll_vertices,
+                list1_index=0,
+                list2_index=None
+            )
+            print(dof, focused_vertex, c_ll_v_cf, gt_cf)
+
+            if len(c_ll_v_cf) == 0 and len(gt_cf) != 0:
+                #now we asssume there is only one dof that didnt commit to neigbor
+                self.dist[dof, gt_cf[0][1]] += 1.
+                # self.dist[dof] *= 1.5
+                pass
+
+            elif len(c_ll_v_cf) != 0 and len(gt_cf) == 0:
+                ## very very bad way
+                self.dist[dof] = csr_matrix(self.dist[dof] / self.dist[dof].sum(axis=1))
+                pass
 
 
-            adj_cells_entities = [j[1] for j in list(itertools.chain(*[i for i in props['adj_cells'].values()]))]
+    def assemble_straight_action(self, verbose=True):
+        for layer_num, cell in \
+           self.assembly_interface.allocator.grid_interface.iterate_cells_fbts(yield_layer_num=True):
+            self.straight_dist += self._distribute_eye(self.assembly_interface._get_ddofs_for_cell(cell))
 
-            future_ignore.update([i.ll_vertex for i in adj_cells_entities])
-
-            host_dofs_to_merge_unique = set([i for i in itertools.chain(*host_dofs_to_merge)])
-            peer_dofs_to_merge_unique = set([i for i in itertools.chain(*peer_dofs_to_merge)])
-
-            host_dofs_independent = set(self.assembly_interface.allocator.
-                                    get_cell_list_of_ddofs_global(props['cell'])) - \
-                                    host_dofs_to_merge_unique
-
-            peer_dofs_independent = set(list(itertools.chain(
-                *[self.assembly_interface.allocator.get_cell_list_of_ddofs_global(cell)
-                for cell in adj_cells_entities]))) - peer_dofs_to_merge_unique
-
-            self.straight_contribs.update(Counter([(i,i) for i in peer_dofs_independent]))
-            self.straight_contribs.update(Counter([(i,i) for i in host_dofs_independent]))
-
-            whole_dist = self._distribute_eye(host_dofs_independent) + \
-                         self._distribute_eye(peer_dofs_independent)
-
-            dist_straight += self._distribute_eye(host_dofs_independent) + \
-                             self._distribute_eye(peer_dofs_independent)
-
-
-            for dist in local_dist_merge:
-                whole_dist += dist
-                dist_interp += dist
-            self.dist += whole_dist
-        ##TODO correct nomralization
-
-        self.interp = dist_interp
-        self.straight = dist_straight
-
-        self.dist_alt = self.normalize_m_by_dict(self.interp, self.dofs_to_merge_contribs) + \
-                        self.normalize_m_by_dict(self.straight, self.straight_contribs)
-
-        #self.dist_alt = csr_matrix(self.dist_alt / self.dist_alt.sum(axis=1))
-
-        self.dist = csr_matrix(self.dist / self.dist.sum(axis=1))
-
+        #just experiment
+        self.straight_dist = csr_matrix(self.straight_dist/self.straight_dist.sum(axis=1))
 
     def assemble_glob_local(self, verbose=True):
         for layer_num, cell in \
            self.assembly_interface.allocator.grid_interface.iterate_cells_fbts(yield_layer_num=True):
             self.unmerged += self._distribute_one_cell(cell)
+
+    def assemble_whole_dist(self):
+        self.assemble_dist()
+        self.assemble_straight_action()
+        self.whole_dist = (self.dist + self.straight_dist)
+
+        # bad way of normalization
+        self.whole_dist = csr_matrix(self.whole_dist / self.whole_dist.sum(axis=1))
 
 
     def assemble(self, verbose=True):

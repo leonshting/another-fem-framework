@@ -21,7 +21,9 @@ class BaseAllocator2D:
 
         ##conjugate index for vertices - thing to get dofs and cells that are/have vertex by vertex
         self._conjugate_vertex_index = {}
+        self._id_to_vertex_index = {}
 
+        self._sizes = {}
         self._ddof_cnt = 0
 
     def _get_fe_cell(self, size, order, dist):

@@ -59,7 +59,7 @@ class GridManager:
                                                    div_index=div_index))
         return self
 
-    def draw_grid(self):
+    def draw_grid(self, file_to_save=None):
         if len(self.grid_layers):
             lines = []
             from matplotlib import pyplot as plt
@@ -74,3 +74,5 @@ class GridManager:
 
             ax.autoscale()
             plt.show()
+            if file_to_save is not None:
+                fig.savefig(file_to_save)

@@ -51,6 +51,7 @@ class GridDomain:
             for dof in v:
                 self.normal_index[dof] = k
 
+
     def vectorize_function(self, f):
         vec = np.zeros(self._ddof_cnt)
         for k,v in self.pointwise_index.items():

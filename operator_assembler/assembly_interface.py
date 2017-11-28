@@ -83,3 +83,11 @@ class AssemblyInterface2D:
 
     def get_ddof_count(self):
         return self.allocator.ddof_cnt
+
+    def get_vertex_by_dof_id(self, dof_id: int):
+        return self.allocator._id_to_vertex_index[dof_id]
+
+    def get_ll_vertices_by_vertex(self, vertex):
+        return self.allocator._conjugate_vertex_index[vertex]
+
+    ## TODO bypass a cell iterator

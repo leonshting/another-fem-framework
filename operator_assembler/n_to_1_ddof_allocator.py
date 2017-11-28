@@ -21,27 +21,42 @@ class Nto1Allocator2D(BaseAllocator2D):
 
     # TODO: convenience function to construct endpoint index
 
-    def _merge_ddof_in_index(self):
+    def _make_conjugate_vertex_index(self):
         sizes = {}
         vertex_dofs = defaultdict(list)
 
         for (ll_vertex, vertex), (local_dof, global_dof) in self._vertex_ddof_index.items():
-            sizes[ll_vertex] = max(sizes.get(ll_vertex, 0), max([abs(i-j) for i,j in zip(ll_vertex, vertex)]))
+            sizes[ll_vertex] = max(sizes.get(ll_vertex, 0), max([abs(i - j) for i, j in zip(ll_vertex, vertex)]))
             vertex_dofs[vertex].append((ll_vertex, global_dof))
+
         self._conjugate_vertex_index = vertex_dofs
-        for vertex, list_dofs_props in vertex_dofs.items():
+        self._sizes = sizes
+
+    def _merge_ddof_in_index(self):
+        cvi_replacement = defaultdict(list)
+        id2v_replacement = {}
+
+        for vertex, list_dofs_props in self._conjugate_vertex_index.items():
             ll_vertices = defaultdict(list)
             unique_dofs = {}
             for ll_vertex, global_dof in list_dofs_props:
-                ll_vertices[sizes[ll_vertex]].append(ll_vertex)
-                unique_dofs[sizes[ll_vertex]] = (ll_vertex, global_dof)
+                ll_vertices[self._sizes[ll_vertex]].append(ll_vertex)
+                cvi_replacement[vertex].append((ll_vertex, global_dof))
+                id2v_replacement[global_dof] = vertex
+                unique_dofs[self._sizes[ll_vertex]] = (ll_vertex, global_dof)
             for size, ll_vertices in ll_vertices.items():
                 for ll_vertex in ll_vertices:
                     self._vertex_ddof_index[(ll_vertex, vertex)] = (
                         self._vertex_ddof_index[(ll_vertex, vertex)][0],
                         unique_dofs[size][1]
                     )
+            self._conjugate_vertex_index = cvi_replacement
+            self._id_to_vertex_index = id2v_replacement
 
+    def make_complete_index(self):
+        self._make_ddof_index()
+        self._make_conjugate_vertex_index()
+        self._merge_ddof_in_index()
 
     @staticmethod
     def _get_stitching_mode(host_edge: edge_2D_type, peer_edges: Dict[Tuple, Cell2D], host_props, peer_props):
