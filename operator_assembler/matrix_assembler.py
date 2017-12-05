@@ -4,7 +4,7 @@ from typing import List
 
 import h5py
 import numpy as np
-from scipy.sparse import csr_matrix, coo_matrix
+from scipy.sparse import csr_matrix, coo_matrix, linalg, eye
 import itertools
 from collections import Counter
 from sklearn.preprocessing import normalize
@@ -44,6 +44,10 @@ class MatrixAssembler2D():
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
 
+        self.distT = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
         self.unmerged = csr_matrix((
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
@@ -56,7 +60,11 @@ class MatrixAssembler2D():
             self.assembly_interface.get_ddof_count(),
             self.assembly_interface.get_ddof_count()))
 
-    def _get_local_ff_matrix(self, distribution, order, cell, diagonal=True):
+        self.mass_unmerged = csr_matrix((
+            self.assembly_interface.get_ddof_count(),
+            self.assembly_interface.get_ddof_count()))
+
+    def _get_local_ff_matrix(self, distribution, order, cell, diagonal=True, inverse=False):
         if self._ff_matrices.get((order, distribution, cell.size)) is None:
             self._ff_matrices[(order, distribution, cell.size)] = local_funcfunc_matrix(
                 dim=2,
@@ -64,17 +72,31 @@ class MatrixAssembler2D():
                 order=order,
             )
         if diagonal:
-            return np.diag(self._ff_matrices[(order, distribution, cell.size)].sum(axis=1))
+            if inverse:
+                return np.diag(1/(self._ff_matrices[(order, distribution, cell.size)].sum(axis=1)))
+            else:
+                return np.diag((self._ff_matrices[(order, distribution, cell.size)].sum(axis=1)))
         else:
-            return self._ff_matrices[(order, distribution, cell.size)]
+            if inverse:
+                return np.linalg.inv(self._ff_matrices[(order, distribution, cell.size)])
+            else:
+                return self._ff_matrices[(order, distribution, cell.size)]
 
-    def _get_local_gg_matrix(self, distribution, order, cell: Cell2D):
+    def _get_local_gg_matrix(self, distribution, order, cell: Cell2D, normed_by=False):
         #TODO: DANGER in zero_index
         if self._gg_matrices.get((order, distribution)) is None:
             self._gg_matrices[(order, distribution)] = local_gradgrad_matrix(dim=2,
                                                                              distribution=self.dist_dict[distribution],
                                                                              order=order)[0]
-        return self._gg_matrices[(order, distribution)]
+        if normed_by:
+            return np.dot(np.linalg.inv(self._get_local_ff_matrix(
+                distribution=distribution,
+                cell=cell,
+                diagonal=True,
+                order=order
+            )),self._gg_matrices[(order, distribution)])
+        else:
+            return self._gg_matrices[(order, distribution)]
 
     def _get_local_matrices_from_file(self, distribution):
         M_source = h5py.File(self._matrices_h5_storages[distribution], mode='r')
@@ -88,7 +110,7 @@ class MatrixAssembler2D():
 
             for sm, smm in zip(size_mass, size_mass_mapped):
                 self._ff_matrices[(order, distribution, (sm[1], sm[1]))] = \
-                    M_source['mass_matrices/base_M_order_{}'.format(order)][()] * (smm[1] ** 2)
+                    M_source['mass_matrices/base_M_order_{}'.format(order)][()] * (sm[1] ** 2)
 
         M_source.close()
 
@@ -112,19 +134,20 @@ class MatrixAssembler2D():
             glob += dist_2.T * csr_matrix(self._get_local_ff_matrix(distribution=props_2[1], order=props_2[0], cell=cell_2)) * dist_2
             return glob
 
-    def _distribute_one_cell(self, cell: Cell2D):
+    def _distribute_one_cell(self, cell: Cell2D, normed=False):
         pairtuple = self.assembly_interface.allocator.get_cell_list_of_ddofs(cell=cell)
         props = self.assembly_interface.allocator.get_cell_props(cell)
         dist_1 = distributed_eye_easy(pairtuples=pairtuple, axis2shape=self.assembly_interface.get_ddof_count()).tocoo()
-        glob = dist_1.T * csr_matrix(self._get_local_gg_matrix(distribution=props[1], order=props[0], cell=cell)) * dist_1
+        glob = dist_1.T * csr_matrix(
+            self._get_local_gg_matrix(distribution=props[1], order=props[0], cell=cell, normed_by=normed)) * dist_1
         return glob.tocsr()
 
-    def _distribute_mass_one_cell(self, cell: Cell2D):
+    def _distribute_mass_one_cell(self, cell: Cell2D, inverse=False):
         pairtuple = self.assembly_interface.allocator.get_cell_list_of_ddofs(cell=cell)
         props = self.assembly_interface.allocator.get_cell_props(cell)
         dist_1 = distributed_eye_easy(pairtuples=pairtuple, axis2shape=self.assembly_interface.get_ddof_count()).tocoo()
         glob = dist_1.T * csr_matrix(self._get_local_ff_matrix(distribution=props[1],
-                                                               order=props[0], cell=cell)) * dist_1
+                                                               order=props[0], cell=cell, inverse=inverse)) * dist_1
         return glob.tocsr()
 
     # rewrite with consuming interpolants
@@ -140,6 +163,16 @@ class MatrixAssembler2D():
         dist = distributed_eye_easy([(num, i) for num, i in enumerate(dofs)],
                                     axis2shape=self.assembly_interface.get_ddof_count())
         return dist.T * csr_matrix(np.eye(len(dofs))) * dist
+
+    def exclude_redundant(self, M):
+        mapping = self.assembly_interface.allocator.new_dof_mapping
+        len_after = len(set(mapping))
+        ind1 = np.arange(self.assembly_interface.get_ddof_count(), dtype=np.int64)
+        ind2 = mapping
+        vals = np.ones(shape=len(mapping))
+        ret_mat = coo_matrix((vals, (ind1, ind2)), shape=(self.assembly_interface.get_ddof_count(), len_after)).tocsr()
+        return ret_mat.T * M * ret_mat
+
 
     @staticmethod
     def filter_collaboratively(list1: List, list2: List, list1_index=None, list2_index=None):
@@ -199,7 +232,7 @@ class MatrixAssembler2D():
 
             for (k_edge, adj_cells), (w_edge, weak_conns) in zip(props['adj_cells'].items(), props['wconn'].items()):
 
-                tmp_peer = self.stack_wcon_dofs(weak_conns)
+                tmp_peer = [self.assembly_interface.allocator.new_dof_mapping[i] for i in self.stack_wcon_dofs(weak_conns)]
                 tmp_host = self.assembly_interface.allocator.get_flat_list_of_ddofs_global(
                     edge=k_edge, cell=props['cell'])
 
@@ -210,6 +243,9 @@ class MatrixAssembler2D():
                 # TODO: probably condense to nested loops
                 for num, vertex_dofs in enumerate([vertex_peer_dofs, vertex_host_dofs]):
                     for d in vertex_dofs:
+                        # qucik_fix
+                        # lets correct this in some way: wconn generator yields index'ly outdated dof_ids
+
                         cells = [props['cell']] if num == 0 else [i[1] for i in adj_cells]
 
                         vertex = self.assembly_interface.get_vertex_by_dof_id(d)
@@ -225,6 +261,10 @@ class MatrixAssembler2D():
                 self.dist += self._distribute_interpolant(tmp_peer, tmp_host, self.I_s2b) + \
                              self._distribute_interpolant(tmp_host, tmp_peer, self.I_b2s)
 
+               # self.distT += self._distribute_interpolant(tmp_peer, tmp_host, self.I_b2s.T) + \
+               #              self._distribute_interpolant(tmp_host, tmp_peer, self.I_s2b.T)
+
+
         for dof, contributing_ll_vertices in outer_contribs_to_vertex_dofs.items():
             focused_vertex = self.assembly_interface.get_vertex_by_dof_id(dof_id=dof)
             ground_truth_filtered = [i for i in self.assembly_interface.get_ll_vertices_by_vertex(focused_vertex)\
@@ -239,34 +279,42 @@ class MatrixAssembler2D():
 
             if len(c_ll_v_cf) == 0 and len(gt_cf) != 0:
                 #now we asssume there is only one dof that didnt commit to neigbor
-                self.dist[dof, gt_cf[0][1]] += 1.
+                #self.dist[dof, gt_cf[0][1]] += 1.
                 # self.dist[dof] *= 1.5
                 pass
 
             elif len(c_ll_v_cf) != 0 and len(gt_cf) == 0:
                 ## very very bad way
-                self.dist[dof] = csr_matrix(self.dist[dof] / self.dist[dof].sum(axis=1))
+                #self.dist[dof] = csr_matrix(self.dist[dof] / self.dist[dof].sum(axis=1))
                 pass
+            self.dist[dof] = csr_matrix(self.dist[dof] / self.dist[dof].sum(axis=1))
 
 
     def assemble_straight_action(self, verbose=True):
+        #for layer_num, cell in \
+        #   self.assembly_interface.allocator.grid_interface.iterate_cells_fbts(yield_layer_num=True):
+        #    self.straight_dist += self._distribute_eye(self.assembly_interface._get_ddofs_for_cell(cell))
+        #
+        ##just experiment
+        #self.straight_dist = csr_matrix(self.straight_dist/self.straight_dist.sum(axis=1))
+        self.straight_dist = eye(self.assembly_interface.get_ddof_count())
+
+    def assemble_glob_local(self, verbose=True, normed=True):
         for layer_num, cell in \
            self.assembly_interface.allocator.grid_interface.iterate_cells_fbts(yield_layer_num=True):
-            self.straight_dist += self._distribute_eye(self.assembly_interface._get_ddofs_for_cell(cell))
+            self.unmerged += self._distribute_one_cell(cell, normed=normed)
 
-        #just experiment
-        self.straight_dist = csr_matrix(self.straight_dist/self.straight_dist.sum(axis=1))
-
-    def assemble_glob_local(self, verbose=True):
+    def assemble_mass_glob_local(self, verbose=True, inverse=False):
         for layer_num, cell in \
            self.assembly_interface.allocator.grid_interface.iterate_cells_fbts(yield_layer_num=True):
-            self.unmerged += self._distribute_one_cell(cell)
+            self.mass_unmerged += self._distribute_mass_one_cell(cell, inverse=inverse)
+
 
     def assemble_whole_dist(self):
         self.assemble_dist()
         self.assemble_straight_action()
         self.whole_dist = (self.dist + self.straight_dist)
-
+        #self.whole_distT = (self.distT + self.straight_dist)
         # bad way of normalization
         self.whole_dist = csr_matrix(self.whole_dist / self.whole_dist.sum(axis=1))
 

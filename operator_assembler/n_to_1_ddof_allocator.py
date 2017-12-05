@@ -5,6 +5,7 @@ from common.polynom_factory import gen_nodes
 from grid.cell import Cell2D
 from operator_assembler.base_ddof_allocator import BaseAllocator2D
 from common.custom_types_for_typechecking import *
+import numpy as np
 
 
 class Nto1Allocator2D(BaseAllocator2D):
@@ -31,6 +32,7 @@ class Nto1Allocator2D(BaseAllocator2D):
 
         self._conjugate_vertex_index = vertex_dofs
         self._sizes = sizes
+        self.new_dof_mapping = np.arange(self._ddof_cnt, dtype=np.int64)
 
     def _merge_ddof_in_index(self):
         cvi_replacement = defaultdict(list)
@@ -46,12 +48,13 @@ class Nto1Allocator2D(BaseAllocator2D):
                 unique_dofs[self._sizes[ll_vertex]] = (ll_vertex, global_dof)
             for size, ll_vertices in ll_vertices.items():
                 for ll_vertex in ll_vertices:
+                    self.new_dof_mapping[self._vertex_ddof_index[(ll_vertex, vertex)][1]] = unique_dofs[size][1]
                     self._vertex_ddof_index[(ll_vertex, vertex)] = (
                         self._vertex_ddof_index[(ll_vertex, vertex)][0],
                         unique_dofs[size][1]
                     )
-            self._conjugate_vertex_index = cvi_replacement
-            self._id_to_vertex_index = id2v_replacement
+        self._conjugate_vertex_index = cvi_replacement
+        self._id_to_vertex_index = id2v_replacement
 
     def make_complete_index(self):
         self._make_ddof_index()

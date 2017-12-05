@@ -12,19 +12,19 @@ import numpy as np
 
 from common import visual
 
-data_start = (70, 64)
-data_shape = (32, 32)
+data_start = (45, 90)
+data_shape = (16, 16)
 data_end = tuple([i+j for i,j in zip(data_start, data_shape)])
 
 h5_data = h5py.File('../../../GM_L3D/600/state/viz_GM_1.h5')['index'][0]
 data = h5_data[data_start[0]:data_end[0], data_start[1]:data_end[1]]
 #data = imread('/Users/leonshting/Programming/Schlumberger/model/bhi2_labelled0000.tif')[data_start[0]:data_end[0], data_start[1]:data_end[1]]
 
-grid_domain = GridDomain(integer_size=data_shape, domain_size=(1.,1.))
-gm = GridManager()
+grid_domain = GridDomain(integer_size=data_shape, domain_size=(16.,16.))
+gm = GridManager(method_options={'max_coarsening_layer':2})
 ifma = InterfaceDofAllocator2D(grid_manager=gm.fit(data=data))
 
-#gm.draw_grid(file_to_save='grid.png')
+gm.draw_grid(file_to_save='grid.png')
 
 ma = Nto1Allocator2D(grid_interface=ifma)
 ma.make_complete_index()
@@ -36,7 +36,7 @@ ifma2 = AssemblyInterface2D(allocator=ma)
 MA = MatrixAssembler2D(assembly_interface=ifma2, grid_domain=grid_domain)
 MA.assemble_dist()
 
-MA.assemble()
+MA.assemble_glob_local()
 
 product = grid_domain.devectorize_vector(MA.assembled * sine_test)
 init = grid_domain.devectorize_function(lambda x,y: np.sin(x+y))

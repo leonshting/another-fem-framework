@@ -18,6 +18,10 @@ class GridManager:
         self.dim = dim
         self.method = method
         self._alloc_constructors()
+        # TODO: correct handling of kwargs
+
+        self._max_coarsening_layer = kwargs.get('method_options', {'max_coarsening_layer': 100})\
+            .get('max_coarsening_layer')
 
     def _alloc_constructors(self):
         if self.dim == 2:
@@ -47,7 +51,7 @@ class GridManager:
         self.grid_layers = []
         if self.method == 'coarse2to1':
             from .refiners.coarse_on_index_2_to_1 import CoarseOnIndex
-            gp = CoarseOnIndex()
+            gp = CoarseOnIndex(max_coarsening_layer=self._max_coarsening_layer)
             dict_data = gp.coarse_on_index(index=data)
             for layer_num, layer_size, layer_rock in zip(range(dict_data['layer_counter']),
                                                          dict_data['layer_scalers'],

@@ -13,6 +13,7 @@ def partial_diff_test(pointnum, point, matrix, pointdict, mass_matrix=None,
             dy = point[1] - k[1]
 
             zero_der += matrix[pointnum, v]
+
             x_der += dx * matrix[pointnum, v]
             xx_der += matrix[pointnum, v] * dx ** 2 / 2
             y_der += dy * matrix[pointnum, v]
