@@ -15,7 +15,7 @@ class InterfaceDofAllocator2D:
         self.num_layers = len(self.layers)
         self.dim = 2
 
-        self._default_order = kwargs.get('default_order', 3)
+        self._default_order = kwargs.get('default_order', 2)
         self._default_dist = kwargs.get('default_dist', 'lobatto')
 
     def query_adj_cells_by_edge(self, cell: Cell2D, edge: edge_2D_type, num_layer: int, size_rel_filter=None):

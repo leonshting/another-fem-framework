@@ -10,7 +10,7 @@ class AssemblyInterface2D:
         self.allocator = allocator
 
     #strange shit maybe delete
-    def _get_ddofs_for_cell(self, cell):
+    def get_ddofs_for_cell(self, cell):
         ddof_loc2glob_list = []
         for edge in cell.iterate_edges():
             ddof_loc2glob_list.append(self.allocator.get_ddof_edge(cell, edge))
@@ -24,7 +24,7 @@ class AssemblyInterface2D:
     # strange shit maybe delete
     def iterate_cell_ddofs(self, yield_cell=True):
         for nl, cell in self.allocator.grid_interface.iterate_cells_fstb():
-            ret_ddofs = self._get_ddofs_for_cell(cell)
+            ret_ddofs = self.get_ddofs_for_cell(cell)
             if yield_cell:
                 yield cell, ret_ddofs
             else:

@@ -61,6 +61,7 @@ class Nto1Allocator2D(BaseAllocator2D):
         self._make_conjugate_vertex_index()
         self._merge_ddof_in_index()
 
+
     @staticmethod
     def _get_stitching_mode(host_edge: edge_2D_type, peer_edges: Dict[Tuple, Cell2D], host_props, peer_props):
         if len(peer_edges) == 0:

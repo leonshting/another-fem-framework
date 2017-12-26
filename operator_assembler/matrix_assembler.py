@@ -27,18 +27,18 @@ class MatrixAssembler2D():
 
         self.dist_dict = {'lobatto': 'globatto', 'uniform': 'uniform'}
         self._matrices_h5_storages = {
-            'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/1_10_globatto_integrated.h5',
+            #'lobatto': '/home/lshtanko/Programming/another-fem-framework/datasources/1_10_globatto_integrated.h5',
             #'lobatto': '/Users/marusy/Programming/another-fem-framework/datasources/1_10_globatto_integrated.h5'
-            #'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/1_10_globatto_integrated.h5'
+            'lobatto': '/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/1_10_globatto_integrated.h5'
         }
 
         self._get_local_matrices_from_file('lobatto')
 
-        #self.I_s2b = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_lr.npy')
-        #self.I_b2s = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/3_rl.npy')
+        self.I_s2b = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/2_lr.npy')
+        self.I_b2s = np.load('/Users/leonshting/Programming/Schlumberger/fem-framework/datasources/2_rl.npy')
 
-        self.I_s2b = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_lr.npy')
-        self.I_b2s = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_rl.npy')
+        #self.I_s2b = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_lr.npy')
+        #self.I_b2s = np.load('/home/lshtanko/Programming/another-fem-framework/datasources/3_rl.npy')
 
         self.dist = csr_matrix((
             self.assembly_interface.get_ddof_count(),
@@ -310,10 +310,10 @@ class MatrixAssembler2D():
             self.mass_unmerged += self._distribute_mass_one_cell(cell, inverse=inverse)
 
 
-    def assemble_whole_dist(self):
+    def assemble_whole_dist(self, alpha=0.5):
         self.assemble_dist()
         self.assemble_straight_action()
-        self.whole_dist = (self.dist + self.straight_dist)
+        self.whole_dist = (2 * alpha * self.dist + 2* (1-alpha) * self.straight_dist)
         #self.whole_distT = (self.distT + self.straight_dist)
         # bad way of normalization
         self.whole_dist = csr_matrix(self.whole_dist / self.whole_dist.sum(axis=1))

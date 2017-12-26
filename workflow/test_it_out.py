@@ -16,9 +16,9 @@ data_start = (45, 90)
 data_shape = (16, 16)
 data_end = tuple([i+j for i,j in zip(data_start, data_shape)])
 
-h5_data = h5py.File('../../../GM_L3D/600/state/viz_GM_1.h5')['index'][0]
-data = h5_data[data_start[0]:data_end[0], data_start[1]:data_end[1]]
-#data = imread('/Users/leonshting/Programming/Schlumberger/model/bhi2_labelled0000.tif')[data_start[0]:data_end[0], data_start[1]:data_end[1]]
+#h5_data = h5py.File('../../../GM_L3D/600/state/viz_GM_1.h5')['index'][0]
+#data = h5_data[data_start[0]:data_end[0], data_start[1]:data_end[1]]
+data = imread('/Users/leonshting/Programming/Schlumberger/model/bhi2_labelled0000.tif')[data_start[0]:data_end[0], data_start[1]:data_end[1]]
 
 grid_domain = GridDomain(integer_size=data_shape, domain_size=(16.,16.))
 gm = GridManager(method_options={'max_coarsening_layer':2})

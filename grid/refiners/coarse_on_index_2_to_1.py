@@ -1,3 +1,5 @@
+# obsolete one: coarse_on_index_n_to_1 is faster more flexible ...
+
 import numpy as np
 from scipy import ndimage
 import itertools
